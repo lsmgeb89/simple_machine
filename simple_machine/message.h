@@ -8,30 +8,49 @@ namespace vm {
 
 typedef std::array<int32_t, 2000>::size_type MemoryAddress;
 
-enum Command {
-  Read = 1 << 0,
-  Write = 1 << 1
+/*** Request Message ***/
+
+enum CommandType {
+  InvalidCommand = 0,
+  ReadMemory = 1 << 0,
+  WriteMemory = 1 << 1,
+  EndProcess = 1 << 2
 };
 
-enum MessageType {
-  Request = 1 << 0,
-  Respond = 1 << 1
+struct ReadCommand {
+  MemoryAddress address_offset_;
+};
+
+struct WriteCommand {
+  MemoryAddress memory_address_;
+  int32_t data_;
 };
 
 struct RequestMessage {
-  MemoryAddress location_;
-  Command command_;
+  CommandType command_type_;
+  union {
+    ReadCommand read_command_;
+    WriteCommand write_command_;
+  };
 };
 
+/*** Respond Message ***/
 struct RespondMessage {
   int32_t data_;
+};
+
+/*** Top level Message ***/
+enum MessageType {
+  Invalid = 0,
+  Request = 1 << 0,
+  Respond = 1 << 1
 };
 
 struct MessageContent {
   MessageType type_;
   union {
-    RequestMessage req_;
-    RespondMessage rep_;
+    RequestMessage request_part_;
+    RespondMessage respond_part_;
   };
 };
 

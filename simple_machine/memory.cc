@@ -18,7 +18,9 @@ void Memory::Load(const std::string &file_path) {
   if (program_file_) {
     while (std::getline(program_file_, line)) {
       bool change_loader = false;
+#if _DEBUG
       std::clog << "[" << line_num++ << "]" << line << std::endl;
+#endif
 
       // skip empty lines
       if (line.empty()) {
@@ -53,10 +55,14 @@ void Memory::Load(const std::string &file_path) {
         // discard the remaining string content
         line.erase(it - line.cbegin(), line.cend() - it);
         if (change_loader) {
+#if _DEBUG
           std::clog << "Change loader address to " << line << std::endl;
-          loader_pointer_ = std::stoi(line);
+#endif
+          loader_pointer_ = std::stoul(line);
         } else {
+#if _DEBUG
           std::clog << "memory[" << loader_pointer_ << "] = " << line << std::endl;
+#endif
           memory_array_[loader_pointer_++] = std::stoi(line);
         }
       }
@@ -68,28 +74,47 @@ void Memory::Load(const std::string &file_path) {
 }
 
 void Memory::PullRequest(void) {
-  MessageContent msg;
-  message_.PullMessage(msg);
-}
-
-void Memory::Read(void) {
-
-}
-
-void Memory::Write(void) {
-
+  message_.PullMessage(msg_);
+  if (!IsEnd()) {
+    PrepareRespond();
+  } else {
+    std::cout << "Got End!" << std::endl;
+  }
 }
 
 void Memory::PushRespond(void) {
-
+  if (!IsEnd()) {
+    message_.PushMessage(msg_);
+  }
 }
 
-void Memory::DoCommand(void) {
-
+int32_t Memory::Read(const MemoryAddress& address_offset) {
+  return memory_array_[address_offset];
 }
 
-bool Memory::IsEnd(void) {
-  return false;
+void Memory::Write(const MemoryAddress& address_offset, const int32_t& val) {
+  memory_array_[address_offset] = val;
+}
+
+void Memory::PrepareRespond(void) {
+  switch (msg_.type_) {
+    case Request:
+      if (msg_.request_part_.command_type_ == ReadMemory) {
+        // prepare a respond message for read request
+        msg_.type_ = Respond;
+        msg_.respond_part_.data_ = Read(msg_.request_part_.read_command_.address_offset_);
+      } else if (msg_.request_part_.command_type_ == WriteMemory) {
+        // there is no need to prepare a respond message for write request
+        Write(msg_.request_part_.write_command_.memory_address_,
+              msg_.request_part_.write_command_.data_);
+      }
+      break;
+    case Respond:
+      std::cerr << "[error] Memory should not receive a respond message!" << std::endl;
+      break;
+    default:
+      break;
+  }
 }
 
 } // namespace vm
