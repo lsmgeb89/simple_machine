@@ -5,19 +5,29 @@
 
 #define USER_STACK (1000)
 #define SYSTEM_STACK (2000)
+#define USER_CALL (0)
+#define SYSTEM_CALL (1500)
+#define TIMER_CALL (1000)
 
 namespace vm {
+
+enum CPUMode {
+  UserMode = 1 << 0,
+  KernelMode = 1 << 1
+};
 
 class CPU {
 public:
   CPU(const int& read_pipe, const int& write_pipe)
-    : register_pc_(0),
+    : register_pc_(USER_CALL),
       register_sp_(USER_STACK),
       register_ir_(0),
       register_ac_(0),
       register_x_(0),
       register_y_(0),
-      message_(read_pipe, write_pipe) {
+      message_(read_pipe, write_pipe),
+      instruction_counter_(0),
+      mode_(UserMode) {
   }
 
   void FetchNextInstruction(void);
@@ -42,9 +52,11 @@ private:
 
   /*** instructions ***/
   void LoadValue(void); // 1
+  void LoadAddr(void); // 2
   void LoadIdxX(void); // 4
   void LoadIdxY(void); // 5
   void LoadSpX(void); // 6
+  void Store(void); // 7
   void Put(void); // 9
   void AddY(void); // 10
   void CopyToX(void); // 14
@@ -60,6 +72,9 @@ private:
   void DecX(void); // 26
   void Push(void); // 27
   void Pop(void); // 28
+  void Int(const int32_t& interrupt_address,
+           const int32_t& return_address); // 29
+  void IRet(void); // 30
   void End(void); // 50
 
   // Internal helper
@@ -70,6 +85,9 @@ private:
 
   // debug helper
   std::string RegisterToString(void);
+
+  uint32_t instruction_counter_;
+  CPUMode mode_;
 };
 
 } // namespace vm

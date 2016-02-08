@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
       close(memory_write_pipe[0]); // Close unused read end
 
       vm::Memory vm_mem(cpu_write_pipe[0], memory_write_pipe[1]);
-      vm_mem.Load("/home/christophe/Dropbox/Spring 2016/CS 5348.001 - Operating Systems Concepts/proj_1/sample2.txt");
+      vm_mem.Load("/home/christophe/Dropbox/Spring 2016/CS 5348.001 - Operating Systems Concepts/proj_1/sample3.txt");
 
       do {
         vm_mem.PullRequest();

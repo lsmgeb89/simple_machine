@@ -25,6 +25,8 @@ void CPU::ExecuteInstruction(void) {
       LoadValue();
       break;
     case 2:
+      LoadAddr();
+      break;
     case 3:
     case 4:
       LoadIdxX();
@@ -36,6 +38,8 @@ void CPU::ExecuteInstruction(void) {
       LoadSpX();
       break;
     case 7:
+      Store();
+      break;
     case 8:
     case 9:
       Put();
@@ -88,12 +92,23 @@ void CPU::ExecuteInstruction(void) {
       Pop();
       break;
     case 29:
+      Int(SYSTEM_CALL, register_pc_ + 1);
+      break;
     case 30:
+      IRet();
+      break;
     case 50:
       End();
       break;
     default:
       break;
+  }
+
+  ++instruction_counter_;
+
+  // timer
+  if (!(instruction_counter_ % 3) && (mode_ == UserMode)) {
+    Int(TIMER_CALL, register_pc_);
   }
 
   // debug
@@ -115,6 +130,37 @@ void CPU::LoadValue(void) {
   PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
   PullRespond(register_ac_);
   register_pc_++;
+}
+
+// 2
+void CPU::LoadAddr(void) {
+  // load address
+  int32_t address;
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
+  PullRespond(address);
+
+  // load value at address
+  int32_t value;
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(address)});
+  PullRespond(value);
+
+  register_ac_ = value;
+  MovePC();
+}
+
+// 7
+void CPU::Store(void) {
+  int32_t address;
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
+  PullRespond(address);
+
+  // Store AC into address
+  MessagePart message_part;
+  Message::SetupWriteMessage(static_cast<MemoryAddress>(address),
+                             register_ac_,
+                             message_part);
+  PushRequest(message_part);
+  MovePC();
 }
 
 // 14
@@ -265,6 +311,46 @@ void CPU::Pop(void) {
   PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_++)});
   PullRespond(register_ac_);
   MovePC();
+}
+
+// 29
+void CPU::Int(const int32_t& interrupt_address,
+              const int32_t& return_address) {
+  // enter Kernel mode
+  mode_ = KernelMode;
+
+  int32_t user_sp = register_sp_;
+  register_sp_ = SYSTEM_STACK;
+
+  MessagePart message_part;
+
+  // Push User SP onto stack
+  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+                             user_sp,
+                             message_part);
+  PushRequest(message_part);
+
+  // Push User PC onto stack
+  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+                             return_address,
+                             message_part);
+  PushRequest(message_part);
+
+  register_pc_ = interrupt_address;
+}
+
+// 30
+void CPU::IRet(void) {
+  // Pop User PC from stack
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_++)});
+  PullRespond(register_pc_);
+
+  // Pop User SP from stack
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_++)});
+  PullRespond(register_sp_);
+
+  // back to user mode
+  mode_ = UserMode;
 }
 
 std::string CPU::RegisterToString(void) {
