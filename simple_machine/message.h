@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 
 namespace vm {
 
@@ -11,7 +12,6 @@ typedef std::array<int32_t, 2000>::size_type MemoryAddress;
 /*** Request Message ***/
 
 enum CommandType {
-  InvalidCommand = 0,
   ReadMemory = 1 << 0,
   WriteMemory = 1 << 1,
   EndProcess = 1 << 2
@@ -46,12 +46,14 @@ enum MessageType {
   Respond = 1 << 1
 };
 
+union MessagePart {
+  RequestMessage request_part_;
+  RespondMessage respond_part_;
+};
+
 struct MessageContent {
   MessageType type_;
-  union {
-    RequestMessage request_part_;
-    RespondMessage respond_part_;
-  };
+  MessagePart message_;
 };
 
 class Message {
@@ -59,14 +61,57 @@ public:
   Message(const int& read_pipe, const int& write_pipe)
     : read_pipe_(read_pipe),
       write_pipe_(write_pipe) {
+    Clear();
   }
 
-  void PushMessage(MessageContent& message);
-  void PullMessage(MessageContent& message);
+  void PushMessage(void) const;
+  void PullMessage(void);
+
+  // Set
+  void SetMessage(const MessageType& type,
+                  const MessagePart& message_part);
+
+  static void SetupWriteMessage(const MemoryAddress& address,
+                                const int32_t& data,
+                                MessagePart& message_part);
+
+  const MessageType& GetType(void) const {
+    return msg_.type_;
+  }
+
+  const CommandType& GetRequestCommandType(void) const {
+    return msg_.message_.request_part_.command_type_;
+  }
+
+  const MemoryAddress& GetReadRequest(void) const {
+      return msg_.message_.request_part_.read_command_.address_offset_;
+  }
+
+  const MemoryAddress& GetWriteRequestAddress(void) const {
+    return msg_.message_.request_part_.write_command_.memory_address_;
+  }
+
+  const int32_t & GetWriteRequestData(void) const {
+    return msg_.message_.request_part_.write_command_.data_;
+  }
+
+  void GetRespondData(int32_t& data) const {
+    if (GetType() == Respond) {
+      data = msg_.message_.respond_part_.data_;
+    } else {
+      std::cerr << "[error] wrong type of respond message!" << std::endl;
+    }
+  }
+
+  void Clear(void) {
+    msg_.type_ = Invalid;
+    std::memset(&msg_.message_, 0, sizeof(msg_.message_));
+  }
 
 private:
   const int read_pipe_;
   const int write_pipe_;
+  MessageContent msg_;
 };
 
 } // namespace vm

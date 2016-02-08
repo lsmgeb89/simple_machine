@@ -3,8 +3,8 @@
 
 #include "message.h"
 
-#define USER_STACK (999)
-#define SYSTEM_STACK (1999)
+#define USER_STACK (1000)
+#define SYSTEM_STACK (2000)
 
 namespace vm {
 
@@ -34,28 +34,39 @@ private:
   int32_t register_y_;
 
   // message related
-  MessageContent msg_;
   Message message_;
 
   // Internal communication function
-  void PushRequest(const CommandType& command_type,
-                   const int32_t& memory_address);
+  void PushRequest(const MessagePart& message_part);
   void PullRespond(int32_t& data);
 
   /*** instructions ***/
-  void LoadValue(void);
-  void CopyToX(void);
-  void CopyToY(void);
-  void LoadIdxX(void);
-  void LoadIdxY(void);
-  void AddY(void);
-  void JumpIfEqual(void);
-  void Put(void);
-  void IncX(void);
-  void Jump(void);
-  void End(void);
+  void LoadValue(void); // 1
+  void LoadIdxX(void); // 4
+  void LoadIdxY(void); // 5
+  void LoadSpX(void); // 6
+  void Put(void); // 9
+  void AddY(void); // 10
+  void CopyToX(void); // 14
+  void CopyFromX(void); // 15
+  void CopyToY(void); // 16
+  void CopyFromY(void); // 17
+  void Jump(void); // 20
+  void JumpIfEqual(void); // 21
+  void JumpIfNotEqual(void); // 22
+  void CallAddr(void); // 23
+  void Ret(void); // 24
+  void IncX(void); // 25
+  void DecX(void); // 26
+  void Push(void); // 27
+  void Pop(void); // 28
+  void End(void); // 50
 
+  // Internal helper
   void LoadIdx(const int32_t& register_);
+  void MovePC(const int32_t& offset = 1) {
+    register_pc_ += offset;
+  }
 
   // debug helper
   std::string RegisterToString(void);

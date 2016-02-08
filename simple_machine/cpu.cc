@@ -4,23 +4,18 @@
 
 namespace vm {
 
-void CPU::PushRequest(const CommandType& command_type,
-                      const int32_t& memory_address) {
-  msg_ = {Request, {command_type, static_cast<MemoryAddress>(memory_address)}};
-  message_.PushMessage(msg_);
+void CPU::PushRequest(const MessagePart& message_part) {
+  message_.SetMessage(Request, message_part);
+  message_.PushMessage();
 }
 
 void CPU::PullRespond(int32_t& data) {
-  message_.PullMessage(msg_);
-  if (msg_.type_ == Respond) {
-    data = msg_.respond_part_.data_;
-  } else {
-    std::cerr << "[error] wrong type of respond message!" << std::endl;
-  }
+  message_.PullMessage();
+  message_.GetRespondData(data);
 }
 
 void CPU::FetchNextInstruction(void) {
-  PushRequest(ReadMemory, register_pc_);
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_pc_)});
   PullRespond(register_ir_);
 }
 
@@ -38,6 +33,8 @@ void CPU::ExecuteInstruction(void) {
       LoadIdxY();
       break;
     case 6:
+      LoadSpX();
+      break;
     case 7:
     case 8:
     case 9:
@@ -53,10 +50,14 @@ void CPU::ExecuteInstruction(void) {
       CopyToX();
       break;
     case 15:
+      CopyFromX();
+      break;
     case 16:
       CopyToY();
       break;
     case 17:
+      CopyFromY();
+      break;
     case 18:
     case 19:
     case 20:
@@ -66,14 +67,26 @@ void CPU::ExecuteInstruction(void) {
       JumpIfEqual();
       break;
     case 22:
+      JumpIfNotEqual();
+      break;
     case 23:
+      CallAddr();
+      break;
     case 24:
+      Ret();
+      break;
     case 25:
       IncX();
       break;
     case 26:
+      DecX();
+      break;
     case 27:
+      Push();
+      break;
     case 28:
+      Pop();
+      break;
     case 29:
     case 30:
     case 50:
@@ -97,57 +110,92 @@ void CPU::ExecuteInstruction(void) {
 #endif
 }
 
+// 1
 void CPU::LoadValue(void) {
-  PushRequest(ReadMemory, ++register_pc_);
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
   PullRespond(register_ac_);
   register_pc_++;
 }
 
+// 14
 void CPU::CopyToX(void) {
   register_x_ = register_ac_;
   register_pc_++;
 }
 
+// 15
+void CPU::CopyFromX(void) {
+  register_ac_ = register_x_;
+  MovePC();
+}
+
+// 16
 void CPU::CopyToY(void) {
   register_y_ = register_ac_;
   register_pc_++;
 }
 
+// 17
+void CPU::CopyFromY(void) {
+  register_ac_ = register_y_;
+  MovePC();
+}
+
+// 4
 void CPU::LoadIdxX(void) {
   LoadIdx(register_x_);
   register_pc_++;
 }
 
+// 5
 void CPU::LoadIdxY(void) {
   LoadIdx(register_y_);
   register_pc_++;
 }
 
+// 6
+void CPU::LoadSpX(void) {
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_ + register_x_)});
+  PullRespond(register_ac_);
+  MovePC();
+}
+
 void CPU::LoadIdx(const int32_t& register_) {
   int32_t operand;
-  PushRequest(ReadMemory, ++register_pc_);
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
   PullRespond(operand);
-  PushRequest(ReadMemory, operand + register_);
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(operand + register_)});
   PullRespond(register_ac_);
 }
 
+// 21
 void CPU::JumpIfEqual(void) {
   if (!register_ac_) {
-    PushRequest(ReadMemory, ++register_pc_);
+    PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
     PullRespond(register_pc_);
   } else {
     register_pc_ += 2;
   }
 }
 
+// 22
+void CPU::JumpIfNotEqual(void) {
+  if (register_ac_) {
+    PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
+    PullRespond(register_pc_);
+  } else {
+    MovePC(2);
+  }
+}
+
 void CPU::Put(void) {
   int32_t port;
-  PushRequest(ReadMemory, ++register_pc_);
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
   PullRespond(port);
   if (port == 1) {
-    std::cout << register_ac_;
+    std::cerr << register_ac_;
   } else if (port == 2) {
-    std::cout << static_cast<char>(register_ac_);
+    std::cerr << static_cast<char>(register_ac_);
   }
   register_pc_++;
 }
@@ -157,11 +205,10 @@ void CPU::IncX(void) {
   register_pc_++;
 }
 
+// 20
 void CPU::Jump(void) {
-  int32_t address;
-  PushRequest(ReadMemory, ++register_pc_);
-  PullRespond(address);
-  register_pc_= address;
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(++register_pc_)});
+  PullRespond(register_pc_);
 }
 
 void CPU::AddY(void) {
@@ -170,7 +217,54 @@ void CPU::AddY(void) {
 }
 
 void CPU::End(void) {
-  PushRequest(EndProcess, 0);
+  PushRequest({EndProcess, 0});
+}
+
+// 23
+void CPU::CallAddr(void) {
+  MessagePart message_part;
+
+  // Push return address onto stack
+  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+                             register_pc_ + 2,
+                             message_part);
+  PushRequest(message_part);
+
+  Jump();
+}
+
+// 24
+void CPU::Ret(void) {
+  // Pop return address from the stack
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_++)});
+
+  // jump to the address
+  PullRespond(register_pc_);
+}
+
+// 26
+void CPU::DecX(void) {
+  --register_x_;
+  MovePC();
+}
+
+// 27
+void CPU::Push(void) {
+  MessagePart message_part;
+
+  // Push AC onto stack
+  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+                             register_ac_,
+                             message_part);
+  PushRequest(message_part);
+  MovePC();
+}
+
+// 28
+void CPU::Pop(void) {
+  PushRequest({ReadMemory, static_cast<MemoryAddress>(register_sp_++)});
+  PullRespond(register_ac_);
+  MovePC();
 }
 
 std::string CPU::RegisterToString(void) {

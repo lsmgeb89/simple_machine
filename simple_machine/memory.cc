@@ -9,7 +9,9 @@ void Memory::Load(const std::string &file_path) {
 
   // put into constructor
   loader_pointer_ = 0;
+#if _DEBUG
   uint32_t line_num = 1;
+#endif
 
   // open a program file
   program_file_.open(file_path);
@@ -34,11 +36,17 @@ void Memory::Load(const std::string &file_path) {
       }
 
       bool find_digit = false;
+
       auto it = line.cbegin();
       for (; it != line.cend(); ++it) {
         if (!isdigit(*it)) {
           if (find_digit) {
             // find the first non-digit character in this line
+            break;
+          } else if (isspace(*it)) {
+            continue;
+          } else if ((*it == '/') && (*(it + 1) == '/')) {
+            std::clog << "[info] find valid comment!" << std::endl;
             break;
           } else {
             std::cerr << "[error] Invalid input program file!" << std::endl;
@@ -74,7 +82,7 @@ void Memory::Load(const std::string &file_path) {
 }
 
 void Memory::PullRequest(void) {
-  message_.PullMessage(msg_);
+  message_.PullMessage();
   if (!IsEnd()) {
     PrepareRespond();
   } else {
@@ -84,7 +92,7 @@ void Memory::PullRequest(void) {
 
 void Memory::PushRespond(void) {
   if (!IsEnd()) {
-    message_.PushMessage(msg_);
+    message_.PushMessage();
   }
 }
 
@@ -97,16 +105,20 @@ void Memory::Write(const MemoryAddress& address_offset, const int32_t& val) {
 }
 
 void Memory::PrepareRespond(void) {
-  switch (msg_.type_) {
+  need_push_ = false;
+
+  switch (message_.GetType()) {
     case Request:
-      if (msg_.request_part_.command_type_ == ReadMemory) {
+      if (message_.GetRequestCommandType() == ReadMemory) {
         // prepare a respond message for read request
-        msg_.type_ = Respond;
-        msg_.respond_part_.data_ = Read(msg_.request_part_.read_command_.address_offset_);
-      } else if (msg_.request_part_.command_type_ == WriteMemory) {
+        MessagePart message_part;
+        message_part.respond_part_.data_ = Read(message_.GetReadRequest());
+        message_.SetMessage(Respond, message_part);
+        need_push_ = true;
+      } else if (message_.GetRequestCommandType() == WriteMemory) {
         // there is no need to prepare a respond message for write request
-        Write(msg_.request_part_.write_command_.memory_address_,
-              msg_.request_part_.write_command_.data_);
+        Write(message_.GetWriteRequestAddress(),
+              message_.GetWriteRequestData());
       }
       break;
     case Respond:
