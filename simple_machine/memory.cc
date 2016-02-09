@@ -46,7 +46,9 @@ void Memory::Load(const std::string &file_path) {
           } else if (isspace(*it)) {
             continue;
           } else if ((*it == '/') && (*(it + 1) == '/')) {
+#ifdef _DEBUG
             std::clog << "[info] find valid comment!" << std::endl;
+#endif
             break;
           } else {
             std::cerr << "[error] Invalid input program file!" << std::endl;
@@ -83,11 +85,6 @@ void Memory::Load(const std::string &file_path) {
 
 void Memory::PullRequest(void) {
   message_.PullMessage();
-  if (!IsEnd()) {
-    PrepareRespond();
-  } else {
-    std::cout << "Got End!" << std::endl;
-  }
 }
 
 void Memory::PushRespond(void) {
@@ -96,37 +93,74 @@ void Memory::PushRespond(void) {
   }
 }
 
-int32_t Memory::Read(const MemoryAddress& address_offset) {
-  return memory_array_[address_offset];
+RetValue Memory::GrantPermission(const MemoryAddress& address,
+                                 const CPUMode& cpu_mode) {
+
+  if ((cpu_mode == UserMode && IsInUserSpace(address)) ||
+      (cpu_mode == TimerMode && IsInTimerSpace(address)) ||
+      (cpu_mode == SystemMode && IsInSystemSpace(address))) {
+    return Success;
+  } else {
+    return MemoryViolation;
+  }
 }
 
-void Memory::Write(const MemoryAddress& address_offset, const int32_t& val) {
-  memory_array_[address_offset] = val;
+RetValue Memory::Read(const MemoryAddress& address,
+                      const CPUMode& cpu_mode,
+                      int32_t& data) {
+  RetValue ret = GrantPermission(address, cpu_mode);
+  if (IsSuccess(ret)) {
+    data = memory_array_[address];
+#if _DEBUG
+    std::clog << "[info] Read " << data << " @ " << address << std::endl;
+#endif
+  } else {
+    std::cerr << "[error] Read Memory Violation: " << address << std::endl;
+  }
+  return ret;
+}
+
+RetValue Memory::Write(const MemoryAddress& address,
+                       const int32_t& val,
+                       const CPUMode& cpu_mode) {
+  RetValue ret = GrantPermission(address, cpu_mode);
+  if (IsSuccess(ret)) {
+    memory_array_[address] = val;
+#if _DEBUG
+    std::clog << "[info] Write " << val << " @ " << address << std::endl;
+#endif
+  } else {
+    std::cerr << "[error] Write Memory Violation @ " << address << ", mode: " << cpu_mode << std::endl;
+  }
+  return ret;
 }
 
 void Memory::PrepareRespond(void) {
-  need_push_ = false;
+  MessagePart message_part;
+  MessageType type = message_.GetType();
 
-  switch (message_.GetType()) {
-    case Request:
-      if (message_.GetRequestCommandType() == ReadMemory) {
-        // prepare a respond message for read request
-        MessagePart message_part;
-        message_part.respond_part_.data_ = Read(message_.GetReadRequest());
-        message_.SetMessage(Respond, message_part);
-        need_push_ = true;
-      } else if (message_.GetRequestCommandType() == WriteMemory) {
-        // there is no need to prepare a respond message for write request
+  if (Request == type) {
+    if (message_.GetRequestCommandType() == ReadMemory) {
+      // prepare a respond message for read request
+      message_part.respond_part_.OpResult =
+        Read(message_.GetReadRequest(),
+             message_.GetRequestCommandMode(),
+             message_part.respond_part_.data_);
+    } else if (message_.GetRequestCommandType() == WriteMemory) {
+      // prepare a respond message for write request
+      message_part.respond_part_.OpResult =
         Write(message_.GetWriteRequestAddress(),
-              message_.GetWriteRequestData());
-      }
-      break;
-    case Respond:
-      std::cerr << "[error] Memory should not receive a respond message!" << std::endl;
-      break;
-    default:
-      break;
+              message_.GetWriteRequestData(),
+              message_.GetRequestCommandMode());
+    } else {
+      std::cout << "[Info] Got End!" << std::endl;
+      return;
+    }
+  } else {
+    std::cerr << "[error] Memory should not receive a respond message!" << std::endl;
+    message_part.respond_part_.OpResult = WrongMessageType;
   }
+  message_.SetMessage(Respond, message_part);
 }
 
 } // namespace vm

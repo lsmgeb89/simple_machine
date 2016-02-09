@@ -25,10 +25,12 @@ void Message::SetMessage(const MessageType &type,
   msg_.message_ = message_part;
 }
 
-void Message::SetupWriteMessage(const MemoryAddress &address,
-                                const int32_t &data,
+void Message::SetupWriteMessage(const MemoryAddress& address,
+                                const int32_t& data,
+                                const CPUMode& cpu_mode,
                                 MessagePart& message_part) {
   message_part.request_part_.command_type_ = WriteMemory;
+  message_part.request_part_.running_mode_ = cpu_mode;
   message_part.request_part_.write_command_.memory_address_ = address;
   message_part.request_part_.write_command_.data_ = data;
 }

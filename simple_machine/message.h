@@ -7,6 +7,25 @@
 
 namespace vm {
 
+enum CPUMode {
+  UserMode = 1 << 0,
+  TimerMode = 1 << 1,
+  SystemMode = 1 << 2
+};
+
+enum RetValue {
+  Success = 0,
+  MemoryViolation = 1 << 0,
+  WrongMessageType = 1 << 1
+};
+
+#define IsSuccess(func) ((func) == Success)
+#define Check(ret, func)        \
+if (!IsSuccess(ret = (func))) { \
+  goto done;                    \
+}                               \
+
+
 typedef std::array<int32_t, 2000>::size_type MemoryAddress;
 
 /*** Request Message ***/
@@ -28,6 +47,7 @@ struct WriteCommand {
 
 struct RequestMessage {
   CommandType command_type_;
+  CPUMode running_mode_;
   union {
     ReadCommand read_command_;
     WriteCommand write_command_;
@@ -36,6 +56,7 @@ struct RequestMessage {
 
 /*** Respond Message ***/
 struct RespondMessage {
+  RetValue OpResult;
   int32_t data_;
 };
 
@@ -73,6 +94,7 @@ public:
 
   static void SetupWriteMessage(const MemoryAddress& address,
                                 const int32_t& data,
+                                const CPUMode& cpu_mode,
                                 MessagePart& message_part);
 
   const MessageType& GetType(void) const {
@@ -83,6 +105,10 @@ public:
     return msg_.message_.request_part_.command_type_;
   }
 
+  const CPUMode& GetRequestCommandMode(void) const {
+    return msg_.message_.request_part_.running_mode_;
+  }
+
   const MemoryAddress& GetReadRequest(void) const {
       return msg_.message_.request_part_.read_command_.address_offset_;
   }
@@ -91,16 +117,20 @@ public:
     return msg_.message_.request_part_.write_command_.memory_address_;
   }
 
-  const int32_t & GetWriteRequestData(void) const {
+  const int32_t& GetWriteRequestData(void) const {
     return msg_.message_.request_part_.write_command_.data_;
   }
 
-  void GetRespondData(int32_t& data) const {
-    if (GetType() == Respond) {
-      data = msg_.message_.respond_part_.data_;
-    } else {
+  RetValue GetRespondData(int32_t& data) const {
+    if (GetType() != Respond) {
       std::cerr << "[error] wrong type of respond message!" << std::endl;
+      return WrongMessageType;
     }
+
+    if (IsSuccess(msg_.message_.respond_part_.OpResult)) {
+      data = msg_.message_.respond_part_.data_;
+    }
+    return msg_.message_.respond_part_.OpResult;
   }
 
   void Clear(void) {
