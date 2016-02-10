@@ -31,7 +31,8 @@ public:
       message_(read_pipe, write_pipe),
       instruction_counter_(0),
       mode_(UserMode),
-      status_(CPURunning) {
+      status_(CPURunning),
+      uncalled_timer_(0) {
   }
 
   void FetchNextInstruction(void);
@@ -99,9 +100,12 @@ private:
   // debug helper
   std::string RegisterToString(void);
 
+  void TimerHandler(void);
+
   uint32_t instruction_counter_;
   CPUMode mode_;
   Status status_;
+  uint32_t uncalled_timer_;
 };
 
 } // namespace vm

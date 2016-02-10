@@ -120,20 +120,11 @@ void CPU::ExecuteInstruction(void) {
       break;
   }
 
-  if (mode_ == UserMode) {
-    ++instruction_counter_;
-  }
-
-  // timer
-  if (!(instruction_counter_ % 30) && (mode_ == UserMode) && status_ != CPUEnding) {
-#ifdef _DEBUG
-    std::clog << "\nEnter Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
-#endif
-    Int(TimerSpaceBegin, register_pc_, TimerMode);
-  }
+  ++instruction_counter_;
 
   // debug
 #if _DEBUG
+  std::clog << "(" << instruction_counter_ << ")";
   std::clog << "[" << register_ir_ << "]";
   std::clog << "[";
   if (register_ir_ == 50) {
@@ -144,6 +135,8 @@ void CPU::ExecuteInstruction(void) {
   std::clog << "]";
   std::clog << RegisterToString() << std::endl;
 #endif
+
+  TimerHandler();
 }
 
 // 1
@@ -464,6 +457,37 @@ std::string CPU::RegisterToString(void) {
   res += " sp: ";
   res += std::to_string(register_sp_);
   return res;
+}
+
+void CPU::TimerHandler(void) {
+  if (status_ == CPUEnding) {
+    return;
+  }
+
+  // delay triggered timer
+  if (mode_ == UserMode && uncalled_timer_ > 0) {
+#ifdef _DEBUG
+    std::clog << "[Timer] Enter Delay Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
+#endif
+    Int(TimerSpaceBegin, register_pc_, TimerMode);
+    --uncalled_timer_;
+  }
+
+  // timer
+  if (!(instruction_counter_ % 30)) {
+    if (mode_ == UserMode) {
+#ifdef _DEBUG
+      std::clog << "[Timer] Enter Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
+#endif
+      Int(TimerSpaceBegin, register_pc_, TimerMode);
+    } else {
+      // add delay counter
+#ifdef _DEBUG
+      std::clog << "[Timer] Delay Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
+#endif
+      uncalled_timer_++;
+    }
+  }
 }
 
 } // namespace vm
