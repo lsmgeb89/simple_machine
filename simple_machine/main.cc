@@ -14,6 +14,19 @@ int main(int argc, char* argv[]) {
   int cpu_write_pipe[2]; // aka 0 is for memory_read_pipe
   int memory_write_pipe[2]; // aka 0 is for cpu_read_pipe
 
+  // options
+  std::string file_path;
+  int32_t interrupt_timer(0);
+
+  // parse commandline
+  if (argc == 3) {
+    file_path = argv[1];
+    interrupt_timer = atoi(argv[2]);
+  } else {
+    std::cout << "!!! WRONG PARAMETER !!!" << std::endl;
+    exit(0);
+  }
+
   // create two pipes
   if (pipe(cpu_write_pipe) == -1 || pipe(memory_write_pipe) == -1) {
     exit(-1);
@@ -33,8 +46,10 @@ int main(int argc, char* argv[]) {
       close(cpu_write_pipe[1]); // Close unused write end
       close(memory_write_pipe[0]); // Close unused read end
 
-      vm::Memory vm_mem(cpu_write_pipe[0], memory_write_pipe[1]);
-      vm_mem.Load("/home/christophe/Dropbox/Spring 2016/CS 5348.001 - Operating Systems Concepts/proj_1/sample4.txt");
+      vm::Memory vm_mem(cpu_write_pipe[0],
+                        memory_write_pipe[1],
+                        file_path);
+      vm_mem.Init();
 
       do {
         vm_mem.PullRequest();
@@ -55,7 +70,9 @@ int main(int argc, char* argv[]) {
       close(cpu_write_pipe[0]); // Close unused read end
       close(memory_write_pipe[1]); // Close unused write end
 
-      vm::CPU vm_cpu(memory_write_pipe[0], cpu_write_pipe[1]);
+      vm::CPU vm_cpu(memory_write_pipe[0],
+                     cpu_write_pipe[1],
+                     interrupt_timer);
 
       do {
         vm_cpu.FetchNextInstruction();

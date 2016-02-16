@@ -13,11 +13,14 @@ typedef std::array<int32_t, 2000>::size_type MemoryAddress;
 
 class Memory {
 public:
-  Memory(const int& read_pipe, const int& write_pipe)
-    : message_(read_pipe, write_pipe) {
+  Memory(const int& read_pipe,
+         const int& write_pipe,
+         const std::string& file_path)
+    : message_(read_pipe, write_pipe),
+      file_path_(file_path) {
   }
 
-  void Load(const std::string &file_path);
+  void Init(void);
   void PullRequest(void);
   void PrepareRespond(void);
   void PushRespond(void);
@@ -30,6 +33,7 @@ private:
   std::array<int32_t, 2000> memory_array_;
   MemoryAddress loader_pointer_;
   std::ifstream program_file_;
+  std::string file_path_;
 
   // message related
   Message message_;

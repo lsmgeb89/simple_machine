@@ -4,7 +4,7 @@
 
 namespace vm {
 
-void Memory::Load(const std::string &file_path) {
+void Memory::Init(void) {
   std::string line;
 
   // put into constructor
@@ -14,7 +14,7 @@ void Memory::Load(const std::string &file_path) {
 #endif
 
   // open a program file
-  program_file_.open(file_path);
+  program_file_.open(file_path_);
 
   // TODO: more error handling
   if (program_file_) {

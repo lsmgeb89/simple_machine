@@ -21,7 +21,9 @@ public:
     CPUEnding = 1 << 1
   };
 
-  CPU(const int& read_pipe, const int& write_pipe)
+  CPU(const int& read_pipe,
+      const int& write_pipe,
+      const int& timer_trigger)
     : register_pc_(UserSpaceBegin),
       register_sp_(UserStack),
       register_ir_(0),
@@ -32,7 +34,8 @@ public:
       instruction_counter_(0),
       mode_(UserMode),
       status_(CPURunning),
-      uncalled_timer_(0) {
+      uncalled_timer_(0),
+      timer_trigger_(timer_trigger) {
   }
 
   void FetchNextInstruction(void);
@@ -106,6 +109,7 @@ private:
   CPUMode mode_;
   Status status_;
   uint32_t uncalled_timer_;
+  int32_t timer_trigger_;
 };
 
 } // namespace vm

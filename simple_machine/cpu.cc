@@ -474,7 +474,7 @@ void CPU::TimerHandler(void) {
   }
 
   // timer
-  if (!(instruction_counter_ % 30)) {
+  if (!(instruction_counter_ % timer_trigger_)) {
     if (mode_ == UserMode) {
 #ifdef _DEBUG
       std::clog << "[Timer] Enter Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
