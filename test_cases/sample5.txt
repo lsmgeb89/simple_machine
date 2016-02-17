@@ -1,0 +1,29 @@
+1     // Load 10 to AC
+10    // 10 as loop index and table index
+14    // Copy AC to X
+26    // DecX
+4     // Load table address (16) + X to AC
+16    // table start address
+9     // Put 2 (output as char)
+2
+15    // Copy X to AC
+22    // If AC is not zero, jump to loop start
+3
+1     // Print newline
+10
+9
+2
+50    // End
+117   // Data: u
+105   // Data: i
+108   // Data: l
+46    // Data: .
+103   // Data: g
+110   // Data: n
+105   // Data: i
+109   // Data: m
+105   // Data: i
+115   // Data: s
+
+.1000
+30    // Ret
