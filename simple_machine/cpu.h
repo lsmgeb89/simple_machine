@@ -62,13 +62,13 @@ private:
   RetValue PullRespond(int32_t& data);
 
   /*** instructions ***/
-  void LoadValue(void); // 1
+  RetValue LoadValue(void); // 1
   RetValue LoadAddr(void); // 2
   void LoadIdxX(void); // 4
   void LoadIdxY(void); // 5
-  void LoadSpX(void); // 6
+  RetValue LoadSpX(void); // 6
   RetValue Store(void); // 7
-  void Put(void); // 9
+  RetValue Put(void); // 9
   void AddX(void); // 10
   void AddY(void); // 11
   void SubX(void); // 12
@@ -79,23 +79,23 @@ private:
   void CopyFromY(void); // 17
   void CopyToSp(void); // 18
   void CopyFromSp(void); // 19
-  void Jump(void); // 20
-  void JumpIfEqual(void); // 21
-  void JumpIfNotEqual(void); // 22
+  RetValue Jump(void); // 20
+  RetValue JumpIfEqual(void); // 21
+  RetValue JumpIfNotEqual(void); // 22
   RetValue CallAddr(void); // 23
-  void Ret(void); // 24
+  RetValue Ret(void); // 24
   void IncX(void); // 25
   void DecX(void); // 26
   RetValue Push(void); // 27
-  void Pop(void); // 28
+  RetValue Pop(void); // 28
   RetValue Int(const int32_t& interrupt_address,
-           const int32_t& return_address,
-           const CPUMode& cpu_mode); // 29
-  void IRet(void); // 30
+               const int32_t& return_address,
+               const CPUMode& cpu_mode); // 29
+  RetValue IRet(void); // 30
   void End(void); // 50
 
   // Internal helper
-  void LoadIdx(const int32_t& register_);
+  RetValue LoadIdx(const int32_t& register_);
   void MovePC(const int32_t& offset = 1) {
     register_pc_ += offset;
   }

@@ -24,14 +24,14 @@ void CPU::FetchNextInstruction(void) {
 }
 
 void CPU::ExecuteInstruction(void) {
+  RetValue ret(Success);
+
   switch (register_ir_) {
     case 1:
-      LoadValue();
+      ret = LoadValue();
       break;
     case 2:
-      if (!IsSuccess(LoadAddr())) {
-        return;
-      }
+      ret = LoadAddr();
       break;
     case 3:
     case 4:
@@ -41,14 +41,14 @@ void CPU::ExecuteInstruction(void) {
       LoadIdxY();
       break;
     case 6:
-      LoadSpX();
+      ret = LoadSpX();
       break;
     case 7:
-      Store();
+      ret = Store();
       break;
     case 8:
     case 9:
-      Put();
+      ret = Put();
       break;
     case 10:
       AddX();
@@ -81,19 +81,19 @@ void CPU::ExecuteInstruction(void) {
       CopyFromSp();
       break;
     case 20:
-      Jump();
+      ret = Jump();
       break;
     case 21:
-      JumpIfEqual();
+      ret = JumpIfEqual();
       break;
     case 22:
-      JumpIfNotEqual();
+      ret = JumpIfNotEqual();
       break;
     case 23:
-      CallAddr();
+      ret = CallAddr();
       break;
     case 24:
-      Ret();
+      ret = Ret();
       break;
     case 25:
       IncX();
@@ -102,16 +102,16 @@ void CPU::ExecuteInstruction(void) {
       DecX();
       break;
     case 27:
-      Push();
+      ret = Push();
       break;
     case 28:
-      Pop();
+      ret = Pop();
       break;
     case 29:
-      Int(SystemSpaceBegin, register_pc_ + 1, SystemMode);
+      ret = Int(SystemSpaceBegin, register_pc_ + 1, SystemMode);
       break;
     case 30:
-      IRet();
+      ret = IRet();
       break;
     case 50:
       End();
@@ -121,6 +121,10 @@ void CPU::ExecuteInstruction(void) {
   }
 
   ++instruction_counter_;
+
+  if (!IsSuccess(ret)) {
+    return;
+  }
 
   // debug
 #if _DEBUG
@@ -140,15 +144,20 @@ void CPU::ExecuteInstruction(void) {
 }
 
 // 1
-void CPU::LoadValue(void) {
+RetValue CPU::LoadValue(void) {
+  RetValue ret(Success);
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-  PullRespond(register_ac_);
+  Check(ret, PullRespond(register_ac_))
   register_pc_++;
+
+done:
+  return ret;
 }
 
 // 2
 RetValue CPU::LoadAddr(void) {
-  RetValue ret;
+  RetValue ret(Success);
 
   // load address
   int32_t address;
@@ -163,17 +172,17 @@ RetValue CPU::LoadAddr(void) {
   register_ac_ = value;
   MovePC();
 
-  done:
-    return ret;
+done:
+  return ret;
 }
 
 // 7
 RetValue CPU::Store(void) {
-  RetValue ret;
+  RetValue ret(Success);
 
   int32_t address;
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-  PullRespond(address);
+  Check(ret, PullRespond(address))
 
   // Store AC into address
   MessagePart message_part;
@@ -187,8 +196,9 @@ RetValue CPU::Store(void) {
   Check(ret, PullRespond(value))
 
   MovePC();
-  done:
-    return ret;
+
+done:
+  return ret;
 }
 
 // 14
@@ -228,18 +238,28 @@ void CPU::LoadIdxY(void) {
 }
 
 // 6
-void CPU::LoadSpX(void) {
+RetValue CPU::LoadSpX(void) {
+  RetValue ret(Success);
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_ + register_x_)});
-  PullRespond(register_ac_);
+  Check(ret, PullRespond(register_ac_))
   MovePC();
+
+done:
+  return ret;
 }
 
-void CPU::LoadIdx(const int32_t& register_) {
+RetValue CPU::LoadIdx(const int32_t& register_) {
+  RetValue ret(Success);
   int32_t operand;
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-  PullRespond(operand);
+  Check(ret, PullRespond(operand))
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(operand + register_)});
-  PullRespond(register_ac_);
+  Check(ret, PullRespond(register_ac_))
+
+done:
+  return ret;
 }
 
 // 18 Untest
@@ -255,35 +275,51 @@ void CPU::CopyFromSp(void) {
 }
 
 // 21
-void CPU::JumpIfEqual(void) {
+RetValue CPU::JumpIfEqual(void) {
+  RetValue ret(Success);
+
   if (!register_ac_) {
     PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-    PullRespond(register_pc_);
+    Check(ret, PullRespond(register_pc_))
   } else {
     register_pc_ += 2;
   }
+
+done:
+  return ret;
 }
 
 // 22
-void CPU::JumpIfNotEqual(void) {
+RetValue CPU::JumpIfNotEqual(void) {
+  RetValue ret(Success);
+
   if (register_ac_) {
     PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-    PullRespond(register_pc_);
+    Check(ret, PullRespond(register_pc_))
   } else {
     MovePC(2);
   }
+
+done:
+  return ret;
 }
 
-void CPU::Put(void) {
+RetValue CPU::Put(void) {
+  RetValue ret(Success);
   int32_t port;
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-  PullRespond(port);
+  Check(ret, PullRespond(port))
+
   if (port == 1) {
     std::cerr << register_ac_;
   } else if (port == 2) {
     std::cerr << static_cast<char>(register_ac_);
   }
   register_pc_++;
+
+done:
+  return ret;
 }
 
 void CPU::IncX(void) {
@@ -292,9 +328,14 @@ void CPU::IncX(void) {
 }
 
 // 20
-void CPU::Jump(void) {
+RetValue CPU::Jump(void) {
+  RetValue ret(Success);
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
-  PullRespond(register_pc_);
+  Check(ret, PullRespond(register_pc_))
+
+done:
+  return ret;
 }
 
 // 10
@@ -329,7 +370,7 @@ void CPU::End(void) {
 
 // 23
 RetValue CPU::CallAddr(void) {
-  RetValue ret;
+  RetValue ret(Success);
   MessagePart message_part;
 
   // Push return address onto stack
@@ -342,18 +383,23 @@ RetValue CPU::CallAddr(void) {
   int32_t value;
   Check(ret, PullRespond(value))
 
-  Jump();
-  done:
-    return ret;
+  Check(ret, Jump())
+
+done:
+  return ret;
 }
 
 // 24
-void CPU::Ret(void) {
+RetValue CPU::Ret(void) {
+  RetValue ret(Success);
+
   // Pop return address from the stack
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
-
   // jump to the address
-  PullRespond(register_pc_);
+  Check(ret, PullRespond(register_pc_))
+
+done:
+  return ret;
 }
 
 // 26
@@ -364,7 +410,7 @@ void CPU::DecX(void) {
 
 // 27
 RetValue CPU::Push(void) {
-  RetValue ret;
+  RetValue ret(Success);
   MessagePart message_part;
 
   // Push AC onto stack
@@ -379,22 +425,28 @@ RetValue CPU::Push(void) {
 
   MovePC();
 
-  done:
-    return ret;
+done:
+  return ret;
 }
 
 // 28
-void CPU::Pop(void) {
+RetValue CPU::Pop(void) {
+  RetValue ret(Success);
+
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
-  PullRespond(register_ac_);
+  Check(ret, PullRespond(register_ac_))
+
   MovePC();
+
+done:
+  return ret;
 }
 
 // 29
 RetValue CPU::Int(const int32_t& interrupt_address,
-              const int32_t& return_address,
-              const CPUMode& cpu_mode) {
-  RetValue ret;
+                  const int32_t& return_address,
+                  const CPUMode& cpu_mode) {
+  RetValue ret(Success);
   // enter Kernel mode
   mode_ = cpu_mode;
 
@@ -424,22 +476,27 @@ RetValue CPU::Int(const int32_t& interrupt_address,
 
   register_pc_ = interrupt_address;
 
-  done:
-    return ret;
+done:
+  return ret;
 }
 
 // 30
-void CPU::IRet(void) {
+RetValue CPU::IRet(void) {
+  RetValue ret(Success);
+
   // Pop User PC from stack
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
-  PullRespond(register_pc_);
+  Check(ret, PullRespond(register_pc_))
 
   // Pop User SP from stack
   PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
-  PullRespond(register_sp_);
+  Check(ret, PullRespond(register_sp_))
 
   // back to user mode
   mode_ = UserMode;
+
+done:
+  return ret;
 }
 
 std::string CPU::RegisterToString(void) {
