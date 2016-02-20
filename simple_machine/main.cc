@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include "memory.h"
-#include "cpu.h"
 
 /*
 The parent gets the child's pid returned to him, but the child gets 0 returned to him.

@@ -1,6 +1,7 @@
 #ifndef SMPL_MCHN_CPU_H_
 #define SMPL_MCHN_CPU_H_
 
+#include <random>
 #include "message.h"
 
 namespace vm {
@@ -35,7 +36,9 @@ public:
       mode_(UserMode),
       status_(CPURunning),
       uncalled_timer_(0),
-      timer_trigger_(timer_trigger) {
+      timer_trigger_(timer_trigger),
+      dist_(1, 100) {
+    random_engine_.seed(std::random_device()());
   }
 
   void FetchNextInstruction(void);
@@ -54,6 +57,10 @@ private:
   int32_t register_x_;
   int32_t register_y_;
 
+  // random number
+  std::mt19937 random_engine_;
+  std::uniform_int_distribution<std::mt19937::result_type> dist_;
+
   // message related
   Message message_;
 
@@ -63,11 +70,13 @@ private:
 
   /*** instructions ***/
   RetValue LoadValue(void); // 1
-  RetValue LoadAddr(void); // 2
+  RetValue LoadAddress(void); // 2
+  RetValue LoadIndAddress(void); // 3
   void LoadIdxX(void); // 4
   void LoadIdxY(void); // 5
   RetValue LoadSpX(void); // 6
   RetValue Store(void); // 7
+  void Get(void); // 8
   RetValue Put(void); // 9
   void AddX(void); // 10
   void AddY(void); // 11
@@ -82,7 +91,7 @@ private:
   RetValue Jump(void); // 20
   RetValue JumpIfEqual(void); // 21
   RetValue JumpIfNotEqual(void); // 22
-  RetValue CallAddr(void); // 23
+  RetValue CallAddress(void); // 23
   RetValue Ret(void); // 24
   void IncX(void); // 25
   void DecX(void); // 26

@@ -1,6 +1,8 @@
 #include <iostream>
 #include "cpu.h"
+#ifdef _DEBUG
 #include "instruction_table.h"
+#endif
 
 namespace vm {
 
@@ -31,9 +33,11 @@ void CPU::ExecuteInstruction(void) {
       ret = LoadValue();
       break;
     case 2:
-      ret = LoadAddr();
+      ret = LoadAddress();
       break;
     case 3:
+      ret = LoadIndAddress();
+      break;
     case 4:
       LoadIdxX();
       break;
@@ -47,6 +51,8 @@ void CPU::ExecuteInstruction(void) {
       ret = Store();
       break;
     case 8:
+      Get();
+      break;
     case 9:
       ret = Put();
       break;
@@ -90,7 +96,7 @@ void CPU::ExecuteInstruction(void) {
       ret = JumpIfNotEqual();
       break;
     case 23:
-      ret = CallAddr();
+      ret = CallAddress();
       break;
     case 24:
       ret = Ret();
@@ -156,7 +162,7 @@ done:
 }
 
 // 2
-RetValue CPU::LoadAddr(void) {
+RetValue CPU::LoadAddress(void) {
   RetValue ret(Success);
 
   // load address
@@ -170,6 +176,30 @@ RetValue CPU::LoadAddr(void) {
   Check(ret, PullRespond(value))
 
   register_ac_ = value;
+  MovePC();
+
+done:
+  return ret;
+}
+
+// 3
+RetValue CPU::LoadIndAddress(void) {
+  RetValue ret(Success);
+
+  // fetch operand
+  int32_t operand;
+  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  Check(ret, PullRespond(operand))
+
+  // fetch address
+  int32_t address;
+  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(operand)});
+  Check(ret, PullRespond(address))
+
+  // fetch value
+  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(address)});
+  Check(ret, PullRespond(register_ac_))
+
   MovePC();
 
 done:
@@ -199,6 +229,12 @@ RetValue CPU::Store(void) {
 
 done:
   return ret;
+}
+
+// 8
+void CPU::Get(void) {
+  register_ac_ = static_cast<int32_t>(dist_(random_engine_));
+  MovePC();
 }
 
 // 14
@@ -369,7 +405,7 @@ void CPU::End(void) {
 }
 
 // 23
-RetValue CPU::CallAddr(void) {
+RetValue CPU::CallAddress(void) {
   RetValue ret(Success);
   MessagePart message_part;
 

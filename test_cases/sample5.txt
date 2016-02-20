@@ -2,18 +2,65 @@
 10    // 10 as loop index and table index
 14    // Copy AC to X
 26    // DecX
-4     // Load table address (16) + X to AC
-16    // table start address
+4     // Load table address(100) + X to AC
+100   // table start address
 9     // Put 2 (output as char)
 2
 15    // Copy X to AC
 22    // If AC is not zero, jump to loop start
 3
-1     // Print newline
-10
+29
+
+// Test Instruction 11, 12, 13
+1     // Load 9 to AC
+9
+14    // Copy AC to X
+1     // Load 4 to AC
+4
+16    // Copy AC to Y
+3     // Load ! to AC
+150
+11    // AC += Y
 9
 2
+13    // AC -= Y
+9
+2
+10    // AC += X
+9
+2
+12    // AC -= X
+9
+2
+29
+
+// Test Instruction 8
+8     // Get random number
+9
+1
+29
+8     // Get random number
+9
+1
+29
+8     // Get random number
+9
+1
+29
+
+// Test Instruction 18
+1     // Load 950 to AC
+950
+18    // Copy AC to SP
+27    // Push
+19    // Copy SP to AC
+9
+1
+29
+
 50    // End
+
+.100
 117   // Data: u
 105   // Data: i
 108   // Data: l
@@ -25,5 +72,30 @@
 105   // Data: i
 115   // Data: s
 
+.150
+200
+
+.200
+33    // Data: !
+
 .1000
 30    // Ret
+
+.1500
+27    // Push
+15    // CopyFromX
+27    // Push
+17    // CopyFromY
+27    // Push
+
+1     // Print newline
+10
+9
+2
+
+28    // Pop
+16    // CopyToY
+28    // Pop
+14    // CopyToX
+28    // Pop
+30    // IRet
