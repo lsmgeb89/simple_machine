@@ -111,6 +111,7 @@ private:
 
   // debug helper
   std::string RegisterToString(void);
+  std::string CPUInfoToString(void);
 
   void TimerHandler(void);
 

@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include "util.h"
 
 namespace vm {
 
@@ -120,7 +121,7 @@ public:
 
   RetValue GetRespondData(int32_t& data) const {
     if (GetType() != Respond) {
-      std::cerr << "[error] wrong type of respond message!" << std::endl;
+      error_message << "Wrong type of respond message!" << std::endl;
       return WrongMessageType;
     }
 

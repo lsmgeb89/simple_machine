@@ -22,12 +22,14 @@ int main(int argc, char* argv[]) {
     file_path = argv[1];
     interrupt_timer = atoi(argv[2]);
   } else {
-    std::cout << "!!! WRONG PARAMETER !!!" << std::endl;
+    error_system << "Wrong Parameter" << std::endl;
     exit(0);
   }
 
   // create two pipes
-  if (pipe(cpu_write_pipe) == -1 || pipe(memory_write_pipe) == -1) {
+  if (pipe(cpu_write_pipe) == -1 ||
+      pipe(memory_write_pipe) == -1) {
+    perror(LOG_ERROR_MODULE_SYSTEM"[pipe]");
     exit(-1);
   }
 
@@ -36,11 +38,11 @@ int main(int argc, char* argv[]) {
       /* Here pid is -1, the fork failed */
       /* Some possible reasons are that you're */
       /* out of process slots or virtual memory */
-      std::cerr << "The fork failed!" << std::endl;
+      perror("LOG_ERROR_MODULE_SYSTEM[fork]");
       exit(-1);
 
     case 0: {
-      std::cout << "Child: hello!" << std::endl;
+      info_system << "Child process created." << std::endl;
 
       close(cpu_write_pipe[1]); // Close unused write end
       close(memory_write_pipe[0]); // Close unused read end
@@ -56,15 +58,15 @@ int main(int argc, char* argv[]) {
         vm_mem.PushRespond();
       } while(!vm_mem.IsEnd());
 
-      std::clog << "Child process end!" << std::endl;
+      info_system << "Child process is ending." << std::endl;
       close(cpu_write_pipe[0]); // Close read end
       close(memory_write_pipe[1]); // Close write end
 
-      _exit(0);
+      exit(0);
     }
 
     default: {
-      std::cout << "Parent: child's pid is " << pid << std::endl;
+      info_system << "Parent process created and child's pid is " << pid << std::endl;
 
       close(cpu_write_pipe[0]); // Close unused read end
       close(memory_write_pipe[1]); // Close unused write end
@@ -83,18 +85,18 @@ int main(int argc, char* argv[]) {
 
       res = waitpid(-1, nullptr, 0);
       if (res == -1) {
-        perror("waitpid");
-        exit(EXIT_FAILURE);
+        perror("LOG_ERROR_MODULE_SYSTEM[waitpid]");
+        exit(-1);
       }
 
       if (WIFEXITED(status)) {
-        std::clog << "exited, status = " << WEXITSTATUS(status) << std::endl;
+        info_system << "Exited, status = " << WEXITSTATUS(status) << std::endl;
       } else if (WIFSIGNALED(status)) {
-        std::clog << "killed by signal: " << WTERMSIG(status) << std::endl;
+        info_system << "killed by signal: " << WTERMSIG(status) << std::endl;
       } else if (WIFSTOPPED(status)) {
-        std::clog << "stopped by signal: " << WSTOPSIG(status) << std::endl;
+        info_system << "Stopped by signal: " << WSTOPSIG(status) << std::endl;
       } else if (WIFCONTINUED(status)) {
-        std::clog << "continued" << std::endl;
+        info_system << "Continued" << std::endl;
       }
     }
   }

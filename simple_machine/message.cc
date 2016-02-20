@@ -5,17 +5,11 @@
 namespace vm {
 
 void Message::PushMessage(void) const {
-  ssize_t res = write(write_pipe_, &msg_, sizeof(msg_));
-#if _DEBUG
-  //std::clog << "write message res: " << res << std::endl;
-#endif
+  write(write_pipe_, &msg_, sizeof(msg_));
 }
 
 void Message::PullMessage(void) {
-  ssize_t res = read(read_pipe_, &msg_, sizeof(msg_));
-#if _DEBUG
-  //std::clog << "read message res: " << res << std::endl;
-#endif
+  read(read_pipe_, &msg_, sizeof(msg_));
 }
 
 void Message::SetMessage(const MessageType &type,

@@ -5,6 +5,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 
 set(SOURCE_FILES memory.cc main.cc cpu.cc message.cc)
 
-#add_definitions(-D_DEBUG)
+add_definitions(-DNDEBUG)
 
 add_executable(simple_machine ${SOURCE_FILES})

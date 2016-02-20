@@ -1,8 +1,6 @@
 #include <iostream>
 #include "cpu.h"
-#ifdef _DEBUG
 #include "instruction_table.h"
-#endif
 
 namespace vm {
 
@@ -132,19 +130,7 @@ void CPU::ExecuteInstruction(void) {
     return;
   }
 
-  // debug
-#if _DEBUG
-  std::clog << "(" << instruction_counter_ << ")";
-  std::clog << "[" << register_ir_ << "]";
-  std::clog << "[";
-  if (register_ir_ == 50) {
-    std::clog << "END";
-  } else {
-    std::clog << instruction_table[register_ir_];
-  }
-  std::clog << "]";
-  std::clog << RegisterToString() << std::endl;
-#endif
+  info_cpu << CPUInfoToString() << std::endl;
 
   TimerHandler();
 }
@@ -552,6 +538,23 @@ std::string CPU::RegisterToString(void) {
   return res;
 }
 
+std::string CPU::CPUInfoToString(void) {
+  std::string res;
+  res += "(";
+  res += std::to_string(instruction_counter_);
+  res += ")[";
+  res += std::to_string(register_ir_);
+  res += "][";
+  if (register_ir_ == 50) {
+    res += "END";
+  } else {
+    res += instruction_table[register_ir_];
+  }
+  res += "]";
+  res += RegisterToString();
+  return res;
+}
+
 void CPU::TimerHandler(void) {
   if (status_ == CPUEnding) {
     return;
@@ -559,9 +562,7 @@ void CPU::TimerHandler(void) {
 
   // delay triggered timer
   if (mode_ == UserMode && uncalled_timer_ > 0) {
-#ifdef _DEBUG
-    std::clog << "[Timer] Enter Delay Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
-#endif
+    info_cpu << "[Timer] Trigger delayed Timer @ instruction " << instruction_counter_ << std::endl;
     Int(TimerSpaceBegin, register_pc_, TimerMode);
     --uncalled_timer_;
   }
@@ -569,15 +570,11 @@ void CPU::TimerHandler(void) {
   // timer
   if (!(instruction_counter_ % timer_trigger_)) {
     if (mode_ == UserMode) {
-#ifdef _DEBUG
-      std::clog << "[Timer] Enter Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
-#endif
+      info_cpu << "[Timer] Trigger Timer @ instruction " << instruction_counter_ << std::endl;
       Int(TimerSpaceBegin, register_pc_, TimerMode);
     } else {
       // add delay counter
-#ifdef _DEBUG
-      std::clog << "[Timer] Delay Timer Interrupt @ instruction " << instruction_counter_ << std::endl;
-#endif
+      info_cpu << "[Timer] Delay Timer @ instruction " << instruction_counter_ << std::endl;
       uncalled_timer_++;
     }
   }

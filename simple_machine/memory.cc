@@ -9,9 +9,6 @@ void Memory::Init(void) {
 
   // put into constructor
   loader_pointer_ = 0;
-#if _DEBUG
-  uint32_t line_num = 1;
-#endif
 
   // open a program file
   program_file_.open(file_path_);
@@ -20,9 +17,6 @@ void Memory::Init(void) {
   if (program_file_) {
     while (std::getline(program_file_, line)) {
       bool change_loader = false;
-#if _DEBUG
-      std::clog << "[" << line_num++ << "]" << line << std::endl;
-#endif
 
       // skip empty lines
       if (line.empty()) {
@@ -46,12 +40,10 @@ void Memory::Init(void) {
           } else if (isspace(*it)) {
             continue;
           } else if ((*it == '/') && (*(it + 1) == '/')) {
-#ifdef _DEBUG
-            std::clog << "[info] find valid comment!" << std::endl;
-#endif
+            info_memory << "Find valid comment." << std::endl;
             break;
           } else {
-            std::cerr << "[error] Invalid input program file!" << std::endl;
+            error_memory << "Invalid input program file." << std::endl;
             // TODO: add proper error handling
             return;
           }
@@ -65,14 +57,10 @@ void Memory::Init(void) {
         // discard the remaining string content
         line.erase(it - line.cbegin(), line.cend() - it);
         if (change_loader) {
-#if _DEBUG
-          std::clog << "Change loader address to " << line << std::endl;
-#endif
-          loader_pointer_ = std::stoul(line);
+          info_memory << "Change loader address to " << line << std::endl;
+          loader_pointer_ = std::stoi(line);
         } else {
-#if _DEBUG
-          std::clog << "memory[" << loader_pointer_ << "] = " << line << std::endl;
-#endif
+          info_memory << "memory_array[" << loader_pointer_ << "] = " << line << std::endl;
           memory_array_[loader_pointer_++] = std::stoi(line);
         }
       }
@@ -111,11 +99,10 @@ RetValue Memory::Read(const int32_t& address,
   RetValue ret = GrantPermission(address, cpu_mode);
   if (IsSuccess(ret)) {
     data = memory_array_[address];
-#if _DEBUG
-    std::clog << "[info] Read " << data << " @ " << address << std::endl;
-#endif
+    info_memory << "Read " << data << " @ " << address << std::endl;
   } else {
-    std::cerr << "[error] Read Memory Violation: " << address << std::endl;
+    error_memory << "Read Memory Violation: accessing address " << address;
+    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
   }
   return ret;
 }
@@ -126,11 +113,10 @@ RetValue Memory::Write(const int32_t& address,
   RetValue ret = GrantPermission(address, cpu_mode);
   if (IsSuccess(ret)) {
     memory_array_[address] = val;
-#if _DEBUG
-    std::clog << "[info] Write " << val << " @ " << address << std::endl;
-#endif
+    info_memory << "Write " << val << " @ " << address << std::endl;
   } else {
-    std::cerr << "[error] Write Memory Violation @ " << address << ", mode: " << cpu_mode << std::endl;
+    error_memory << "Write Memory Violation: accessing address " << address;
+    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
   }
   return ret;
 }
@@ -153,11 +139,11 @@ void Memory::PrepareRespond(void) {
               message_.GetWriteRequestData(),
               message_.GetRequestCommandMode());
     } else {
-      std::cout << "[Info] Got End!" << std::endl;
+      info_memory << "Got end!" << std::endl;
       return;
     }
   } else {
-    std::cerr << "[error] Memory should not receive a respond message!" << std::endl;
+    error_memory << "Memory should not receive a respond message!" << std::endl;
     message_part.respond_part_.OpResult = WrongMessageType;
   }
   message_.SetMessage(Respond, message_part);
