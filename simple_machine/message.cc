@@ -25,7 +25,7 @@ void Message::SetMessage(const MessageType &type,
   msg_.message_ = message_part;
 }
 
-void Message::SetupWriteMessage(const MemoryAddress& address,
+void Message::SetupWriteMessage(const int32_t& address,
                                 const int32_t& data,
                                 const CPUMode& cpu_mode,
                                 MessagePart& message_part) {

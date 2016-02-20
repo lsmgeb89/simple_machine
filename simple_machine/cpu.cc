@@ -21,7 +21,7 @@ RetValue CPU::PullRespond(int32_t& data) {
 }
 
 void CPU::FetchNextInstruction(void) {
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_pc_)});
+  PushRequest({ReadMemory, mode_, register_pc_});
   PullRespond(register_ir_);
 }
 
@@ -153,7 +153,7 @@ void CPU::ExecuteInstruction(void) {
 RetValue CPU::LoadValue(void) {
   RetValue ret(Success);
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(register_ac_))
   register_pc_++;
 
@@ -167,12 +167,12 @@ RetValue CPU::LoadAddress(void) {
 
   // load address
   int32_t address;
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(address))
 
   // load value at address
   int32_t value;
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(address)});
+  PushRequest({ReadMemory, mode_, address});
   Check(ret, PullRespond(value))
 
   register_ac_ = value;
@@ -188,16 +188,16 @@ RetValue CPU::LoadIndAddress(void) {
 
   // fetch operand
   int32_t operand;
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(operand))
 
   // fetch address
   int32_t address;
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(operand)});
+  PushRequest({ReadMemory, mode_, operand});
   Check(ret, PullRespond(address))
 
   // fetch value
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(address)});
+  PushRequest({ReadMemory, mode_, address});
   Check(ret, PullRespond(register_ac_))
 
   MovePC();
@@ -211,12 +211,12 @@ RetValue CPU::Store(void) {
   RetValue ret(Success);
 
   int32_t address;
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(address))
 
   // Store AC into address
   MessagePart message_part;
-  Message::SetupWriteMessage(static_cast<MemoryAddress>(address),
+  Message::SetupWriteMessage(address,
                              register_ac_,
                              mode_,
                              message_part);
@@ -277,7 +277,7 @@ void CPU::LoadIdxY(void) {
 RetValue CPU::LoadSpX(void) {
   RetValue ret(Success);
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_ + register_x_)});
+  PushRequest({ReadMemory, mode_, (register_sp_ + register_x_)});
   Check(ret, PullRespond(register_ac_))
   MovePC();
 
@@ -289,9 +289,9 @@ RetValue CPU::LoadIdx(const int32_t& register_) {
   RetValue ret(Success);
   int32_t operand;
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(operand))
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(operand + register_)});
+  PushRequest({ReadMemory, mode_, (operand + register_)});
   Check(ret, PullRespond(register_ac_))
 
 done:
@@ -315,7 +315,7 @@ RetValue CPU::JumpIfEqual(void) {
   RetValue ret(Success);
 
   if (!register_ac_) {
-    PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+    PushRequest({ReadMemory, mode_, ++register_pc_});
     Check(ret, PullRespond(register_pc_))
   } else {
     register_pc_ += 2;
@@ -330,7 +330,7 @@ RetValue CPU::JumpIfNotEqual(void) {
   RetValue ret(Success);
 
   if (register_ac_) {
-    PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+    PushRequest({ReadMemory, mode_, ++register_pc_});
     Check(ret, PullRespond(register_pc_))
   } else {
     MovePC(2);
@@ -344,7 +344,7 @@ RetValue CPU::Put(void) {
   RetValue ret(Success);
   int32_t port;
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(port))
 
   if (port == 1) {
@@ -367,7 +367,7 @@ void CPU::IncX(void) {
 RetValue CPU::Jump(void) {
   RetValue ret(Success);
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(++register_pc_)});
+  PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(register_pc_))
 
 done:
@@ -410,7 +410,7 @@ RetValue CPU::CallAddress(void) {
   MessagePart message_part;
 
   // Push return address onto stack
-  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+  Message::SetupWriteMessage(--register_sp_,
                              register_pc_ + 2,
                              mode_,
                              message_part);
@@ -430,7 +430,7 @@ RetValue CPU::Ret(void) {
   RetValue ret(Success);
 
   // Pop return address from the stack
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
+  PushRequest({ReadMemory, mode_, register_sp_++});
   // jump to the address
   Check(ret, PullRespond(register_pc_))
 
@@ -450,7 +450,7 @@ RetValue CPU::Push(void) {
   MessagePart message_part;
 
   // Push AC onto stack
-  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+  Message::SetupWriteMessage(--register_sp_,
                              register_ac_,
                              mode_,
                              message_part);
@@ -469,7 +469,7 @@ done:
 RetValue CPU::Pop(void) {
   RetValue ret(Success);
 
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
+  PushRequest({ReadMemory, mode_, register_sp_++});
   Check(ret, PullRespond(register_ac_))
 
   MovePC();
@@ -492,7 +492,7 @@ RetValue CPU::Int(const int32_t& interrupt_address,
   MessagePart message_part;
 
   // Push User SP onto stack
-  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+  Message::SetupWriteMessage(--register_sp_,
                              user_sp,
                              mode_,
                              message_part);
@@ -502,7 +502,7 @@ RetValue CPU::Int(const int32_t& interrupt_address,
   Check(ret, PullRespond(value))
 
   // Push User PC onto stack
-  Message::SetupWriteMessage(static_cast<MemoryAddress>(--register_sp_),
+  Message::SetupWriteMessage(--register_sp_,
                              return_address,
                              mode_,
                              message_part);
@@ -521,11 +521,11 @@ RetValue CPU::IRet(void) {
   RetValue ret(Success);
 
   // Pop User PC from stack
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
+  PushRequest({ReadMemory, mode_, register_sp_++});
   Check(ret, PullRespond(register_pc_))
 
   // Pop User SP from stack
-  PushRequest({ReadMemory, mode_, static_cast<MemoryAddress>(register_sp_++)});
+  PushRequest({ReadMemory, mode_, register_sp_++});
   Check(ret, PullRespond(register_sp_))
 
   // back to user mode

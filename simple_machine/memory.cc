@@ -93,7 +93,7 @@ void Memory::PushRespond(void) {
   }
 }
 
-RetValue Memory::GrantPermission(const MemoryAddress& address,
+RetValue Memory::GrantPermission(const int32_t& address,
                                  const CPUMode& cpu_mode) {
 
   if ((cpu_mode == UserMode && IsInUserSpace(address)) ||
@@ -105,7 +105,7 @@ RetValue Memory::GrantPermission(const MemoryAddress& address,
   }
 }
 
-RetValue Memory::Read(const MemoryAddress& address,
+RetValue Memory::Read(const int32_t& address,
                       const CPUMode& cpu_mode,
                       int32_t& data) {
   RetValue ret = GrantPermission(address, cpu_mode);
@@ -120,7 +120,7 @@ RetValue Memory::Read(const MemoryAddress& address,
   return ret;
 }
 
-RetValue Memory::Write(const MemoryAddress& address,
+RetValue Memory::Write(const int32_t& address,
                        const int32_t& val,
                        const CPUMode& cpu_mode) {
   RetValue ret = GrantPermission(address, cpu_mode);

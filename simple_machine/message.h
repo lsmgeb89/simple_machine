@@ -25,9 +25,6 @@ if (!IsSuccess(ret = (func))) { \
   goto done;                    \
 }                               \
 
-
-typedef std::array<int32_t, 2000>::size_type MemoryAddress;
-
 /*** Request Message ***/
 
 enum CommandType {
@@ -37,11 +34,11 @@ enum CommandType {
 };
 
 struct ReadCommand {
-  MemoryAddress address_offset_;
+  int32_t address_offset_;
 };
 
 struct WriteCommand {
-  MemoryAddress memory_address_;
+  int32_t memory_address_;
   int32_t data_;
 };
 
@@ -92,7 +89,7 @@ public:
   void SetMessage(const MessageType& type,
                   const MessagePart& message_part);
 
-  static void SetupWriteMessage(const MemoryAddress& address,
+  static void SetupWriteMessage(const int32_t& address,
                                 const int32_t& data,
                                 const CPUMode& cpu_mode,
                                 MessagePart& message_part);
@@ -109,11 +106,11 @@ public:
     return msg_.message_.request_part_.running_mode_;
   }
 
-  const MemoryAddress& GetReadRequest(void) const {
+  const int32_t& GetReadRequest(void) const {
       return msg_.message_.request_part_.read_command_.address_offset_;
   }
 
-  const MemoryAddress& GetWriteRequestAddress(void) const {
+  const int32_t& GetWriteRequestAddress(void) const {
     return msg_.message_.request_part_.write_command_.memory_address_;
   }
 

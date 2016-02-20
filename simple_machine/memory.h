@@ -9,8 +9,6 @@
 
 namespace vm {
 
-typedef std::array<int32_t, 2000>::size_type MemoryAddress;
-
 class Memory {
 public:
   Memory(const int& read_pipe,
@@ -31,34 +29,34 @@ public:
 
 private:
   std::array<int32_t, 2000> memory_array_;
-  MemoryAddress loader_pointer_;
+  int32_t loader_pointer_;
   std::ifstream program_file_;
   std::string file_path_;
 
   // message related
   Message message_;
 
-  RetValue Read(const MemoryAddress& address_offset,
+  RetValue Read(const int32_t& address_offset,
                 const CPUMode& cpu_mode,
                 int32_t& data);
-  RetValue Write(const MemoryAddress& address_offset,
+  RetValue Write(const int32_t& address_offset,
                  const int32_t& val,
                  const CPUMode& cpu_mode);
 
-  RetValue GrantPermission(const MemoryAddress& address_offset,
+  RetValue GrantPermission(const int32_t& address_offset,
                            const CPUMode& cpu_mode);
 
-  bool IsInUserSpace (const MemoryAddress& address) {
+  bool IsInUserSpace (const int32_t& address) {
     return (address >= UserSpaceBegin &&
             address <= UserSpaceEnd);
   }
 
-  bool IsInTimerSpace (const MemoryAddress& address) {
+  bool IsInTimerSpace (const int32_t& address) {
     return (address >= TimerSpaceBegin &&
             address <= TimerSpaceEnd);
   }
 
-  bool IsInSystemSpace (const MemoryAddress& address) {
+  bool IsInSystemSpace (const int32_t& address) {
     return (address >= SystemSpaceBegin &&
             address <= SystemSpaceEnd);
   }
