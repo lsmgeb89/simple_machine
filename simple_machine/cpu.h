@@ -1,5 +1,5 @@
-#ifndef SMPL_MCHN_CPU_H_
-#define SMPL_MCHN_CPU_H_
+#ifndef SIMPLE_MACHINE_CPU_H_
+#define SIMPLE_MACHINE_CPU_H_
 
 #include <random>
 #include "message.h"
@@ -126,4 +126,4 @@ private:
 
 } // namespace vm
 
-#endif // SMPL_MCHN_CPU_H_
+#endif // SIMPLE_MACHINE_CPU_H_

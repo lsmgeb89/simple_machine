@@ -1,5 +1,5 @@
-#ifndef SMPL_MCHN_UTIL_H_
-#define SMPL_MCHN_UTIL_H_
+#ifndef SIMPLE_MACHINE_UTIL_H_
+#define SIMPLE_MACHINE_UTIL_H_
 
 #include <iomanip>
 
@@ -50,4 +50,4 @@ static NullStream null_stream;
 
 #define LOG_ERROR_MODULE_SYSTEM LOG_ERROR MODULE_SYSTEM
 
-#endif //SMPL_MCHN_UTIL_H_
+#endif // SIMPLE_MACHINE_MCHN_UTIL_H_

@@ -1,5 +1,5 @@
-#ifndef SMPL_MCHN_MEMORY_H_
-#define SMPL_MCHN_MEMORY_H_
+#ifndef SIMPLE_MACHINE_MEMORY_H_
+#define SIMPLE_MACHINE_MEMORY_H_
 
 #include <array>
 #include <fstream>
@@ -90,4 +90,4 @@ private:
 
 } // namespace vm
 
-#endif // SMPL_MCHN_MEMORY_H_
+#endif // SIMPLE_MACHINE_MEMORY_H_
