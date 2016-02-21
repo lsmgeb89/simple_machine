@@ -11,27 +11,46 @@ namespace vm {
 
 class Memory {
 public:
+  enum Status {
+    MemoryIniting   = 1 << 0,
+    MemoryRunning   = 1 << 1,
+    MemoryExceptionPush = 1 << 2,
+    MemoryExceptionPull = 1 << 3,
+    MemoryEnding    = 1 << 4
+  };
   Memory(const int& read_pipe,
          const int& write_pipe,
          const std::string& file_path)
     : message_(read_pipe, write_pipe),
-      file_path_(file_path) {
+      loader_pointer_(0),
+      file_path_(file_path),
+      status_(MemoryIniting) {
   }
 
   void Init(void);
+
+  bool IsEnd(void) const {
+    return (MemoryEnding == status_);
+  }
   void PullRequest(void);
   void PrepareRespond(void);
   void PushRespond(void);
-  bool IsEnd(void) const {
-    return (message_.GetType() == Request &&
-      message_.GetRequestCommandType() == EndProcess);
-  }
+
 
 private:
   std::array<int32_t, 2000> memory_array_;
   int32_t loader_pointer_;
   std::ifstream program_file_;
   std::string file_path_;
+  Status status_;
+
+  // internal helper
+  RetValue Init_(void);
+  bool IsEnd_(void) const {
+    return (message_.GetType() == Request &&
+        message_.GetRequestCommandType() == EndProcess);
+  }
+  std::string StatusToString(void);
 
   // message related
   Message message_;

@@ -12,7 +12,7 @@ void CPU::PushRequest(const MessagePart& message_part) {
 RetValue CPU::PullRespond(int32_t& data) {
   message_.PullMessage();
   RetValue ret = message_.GetRespondData(data);
-  if (ret == MemoryViolation) {
+  if (MemoryViolation == ret || MemoryError == ret) {
     End();
   }
   return ret;

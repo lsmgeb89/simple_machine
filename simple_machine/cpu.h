@@ -43,9 +43,8 @@ public:
 
   void FetchNextInstruction(void);
   void ExecuteInstruction(void);
-  // TODO: remove register_ir_
   bool IsEnd(void) const {
-    return (register_ir_ == 50 || status_ == CPUEnding);
+    return (status_ == CPUEnding);
   }
 
 private:

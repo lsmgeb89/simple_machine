@@ -17,7 +17,10 @@ enum CPUMode {
 enum RetValue {
   Success = 0,
   MemoryViolation = 1 << 0,
-  WrongMessageType = 1 << 1
+  MemoryError = 1 << 1,
+  WrongMessageType = 1 << 2,
+  FileNotExisted = 1 << 3,
+  InvalidProgramFile = 1 << 4
 };
 
 #define IsSuccess(func) ((func) == Success)

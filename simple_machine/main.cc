@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
       close(cpu_write_pipe[1]); // Close write end
       close(memory_write_pipe[0]); // Close read end
 
-      res = waitpid(-1, nullptr, 0);
+      res = waitpid(-1, &status, 0);
       if (res == -1) {
         perror("LOG_ERROR_MODULE_SYSTEM[waitpid]");
         exit(-1);
