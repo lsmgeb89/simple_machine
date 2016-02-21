@@ -26,6 +26,8 @@ void CPU::FetchNextInstruction(void) {
 void CPU::ExecuteInstruction(void) {
   RetValue ret(Success);
 
+  if (IsEnd()) { return; }
+
   switch (register_ir_) {
     case 1:
       ret = LoadValue();
@@ -124,15 +126,10 @@ void CPU::ExecuteInstruction(void) {
       break;
   }
 
+  if (!IsSuccess(ret)) { return; }
+
   ++instruction_counter_;
-
-  if (!IsSuccess(ret)) {
-    return;
-  }
-
   info_cpu << CPUInfoToString() << std::endl;
-
-  TimerHandler();
 }
 
 // 1
@@ -555,10 +552,8 @@ std::string CPU::CPUInfoToString(void) {
   return res;
 }
 
-void CPU::TimerHandler(void) {
-  if (status_ == CPUEnding) {
-    return;
-  }
+void CPU::CheckTimer(void) {
+  if (IsEnd()) { return; }
 
   // delay triggered timer
   if (mode_ == UserMode && uncalled_timer_ > 0) {

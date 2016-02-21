@@ -43,6 +43,7 @@ public:
 
   void FetchNextInstruction(void);
   void ExecuteInstruction(void);
+  void CheckTimer(void);
   bool IsEnd(void) const {
     return (status_ == CPUEnding);
   }
@@ -111,8 +112,6 @@ private:
   // debug helper
   std::string RegisterToString(void);
   std::string CPUInfoToString(void);
-
-  void TimerHandler(void);
 
   uint32_t instruction_counter_;
   CPUMode mode_;

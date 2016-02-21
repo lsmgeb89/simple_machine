@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
       do {
         vm_cpu.FetchNextInstruction();
         vm_cpu.ExecuteInstruction();
+        vm_cpu.CheckTimer();
       } while(!vm_cpu.IsEnd());
 
       close(cpu_write_pipe[1]); // Close write end
