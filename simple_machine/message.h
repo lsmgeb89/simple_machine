@@ -98,6 +98,7 @@ public:
                                 const CPUMode& cpu_mode,
                                 MessagePart& message_part);
 
+  // Get
   const MessageType& GetType(void) const {
     return msg_.type_;
   }
@@ -122,17 +123,7 @@ public:
     return msg_.message_.request_part_.write_command_.data_;
   }
 
-  RetValue GetRespondData(int32_t& data) const {
-    if (GetType() != Respond) {
-      error_message << "Wrong type of respond message!" << std::endl;
-      return WrongMessageType;
-    }
-
-    if (IsSuccess(msg_.message_.respond_part_.OpResult)) {
-      data = msg_.message_.respond_part_.data_;
-    }
-    return msg_.message_.respond_part_.OpResult;
-  }
+  RetValue GetRespondData(int32_t& data) const;
 
   void Clear(void) {
     msg_.type_ = Invalid;

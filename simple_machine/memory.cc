@@ -15,6 +15,108 @@ void Memory::Init(void) {
   }
 }
 
+void Memory::PullRequest(void) {
+  message_.PullMessage();
+}
+
+void Memory::PrepareRespond(void) {
+  MessagePart message_part;
+  MessageType type = message_.GetType();
+
+  if (MemoryExceptionPush == status_) {
+    // Notify CPU that Memory will not work any more
+    message_part.respond_part_.OpResult = MemoryError;
+    info_memory << "[status]" << StatusToString() << " ---> MemoryExceptionPull" << std::endl;
+    status_ = MemoryExceptionPull;
+  } else if (MemoryExceptionPull == status_ && IsEnd_()) {
+    info_memory << "Got end, exit for exception!" << std::endl;
+    // Change status to ending
+    info_memory << "[status]" << StatusToString() << " ---> MemoryEnding" << std::endl;
+    status_ = MemoryEnding;
+    return;
+  } else if (MemoryRunning == status_) {
+    if (Request == type) {
+      if (message_.GetRequestCommandType() == ReadMemory) {
+        // prepare a respond message for read request
+        message_part.respond_part_.OpResult =
+            Read(message_.GetReadRequest(),
+                 message_.GetRequestCommandMode(),
+                 message_part.respond_part_.data_);
+      } else if (message_.GetRequestCommandType() == WriteMemory) {
+        // prepare a respond message for write request
+        message_part.respond_part_.OpResult =
+            Write(message_.GetWriteRequestAddress(),
+                  message_.GetWriteRequestData(),
+                  message_.GetRequestCommandMode());
+      } else {
+        info_memory << "Got end, normal exit!" << std::endl;
+        // Change status to ending
+        info_memory << "[status]" << StatusToString() << " ---> MemoryEnding" << std::endl;
+        status_ = MemoryEnding;
+        return;
+      }
+
+      // Change state to MemoryExceptionPull
+      if (!IsSuccess(message_part.respond_part_.OpResult)) {
+        info_memory << "[status]" << StatusToString() << " ---> MemoryExceptionPull" << std::endl;
+        status_ = MemoryExceptionPull;
+      }
+    } else {
+      error_memory << "Memory should not receive a respond message!" << std::endl;
+      message_part.respond_part_.OpResult = WrongMessageType;
+    }
+  }
+
+  message_.SetMessage(Respond, message_part);
+}
+
+void Memory::PushRespond(void) {
+  if (MemoryExceptionPull == status_ ||
+      MemoryRunning == status_) {
+    message_.PushMessage();
+  }
+}
+
+RetValue Memory::GrantPermission(const int32_t& address,
+                                 const CPUMode& cpu_mode) {
+
+  if ((cpu_mode == UserMode && IsInUserSpace(address)) ||
+      (cpu_mode == TimerMode && IsInTimerSpace(address)) ||
+      (cpu_mode == SystemMode && IsInSystemSpace(address))) {
+    return Success;
+  } else {
+    return MemoryViolation;
+  }
+}
+
+RetValue Memory::Read(const int32_t& address,
+                      const CPUMode& cpu_mode,
+                      int32_t& data) {
+  RetValue ret = GrantPermission(address, cpu_mode);
+  if (IsSuccess(ret)) {
+    data = memory_array_[address];
+    info_memory << "Read " << data << " @ " << address << std::endl;
+  } else {
+    error_memory << "Read Memory Violation: accessing address " << address;
+    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
+  }
+  return ret;
+}
+
+RetValue Memory::Write(const int32_t& address,
+                       const int32_t& val,
+                       const CPUMode& cpu_mode) {
+  RetValue ret = GrantPermission(address, cpu_mode);
+  if (IsSuccess(ret)) {
+    memory_array_[address] = val;
+    info_memory << "Write " << val << " @ " << address << std::endl;
+  } else {
+    error_memory << "Write Memory Violation: accessing address " << address;
+    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
+  }
+  return ret;
+}
+
 RetValue Memory::Init_(void) {
   RetValue ret = Success;
   std::string line;
@@ -86,109 +188,7 @@ done:
   return ret;
 }
 
-void Memory::PullRequest(void) {
-  message_.PullMessage();
-}
-
-void Memory::PushRespond(void) {
-  if (MemoryExceptionPull == status_ ||
-      MemoryRunning == status_) {
-    message_.PushMessage();
-  }
-}
-
-RetValue Memory::GrantPermission(const int32_t& address,
-                                 const CPUMode& cpu_mode) {
-
-  if ((cpu_mode == UserMode && IsInUserSpace(address)) ||
-      (cpu_mode == TimerMode && IsInTimerSpace(address)) ||
-      (cpu_mode == SystemMode && IsInSystemSpace(address))) {
-    return Success;
-  } else {
-    return MemoryViolation;
-  }
-}
-
-RetValue Memory::Read(const int32_t& address,
-                      const CPUMode& cpu_mode,
-                      int32_t& data) {
-  RetValue ret = GrantPermission(address, cpu_mode);
-  if (IsSuccess(ret)) {
-    data = memory_array_[address];
-    info_memory << "Read " << data << " @ " << address << std::endl;
-  } else {
-    error_memory << "Read Memory Violation: accessing address " << address;
-    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
-  }
-  return ret;
-}
-
-RetValue Memory::Write(const int32_t& address,
-                       const int32_t& val,
-                       const CPUMode& cpu_mode) {
-  RetValue ret = GrantPermission(address, cpu_mode);
-  if (IsSuccess(ret)) {
-    memory_array_[address] = val;
-    info_memory << "Write " << val << " @ " << address << std::endl;
-  } else {
-    error_memory << "Write Memory Violation: accessing address " << address;
-    std::cerr << " in " << ((cpu_mode == UserMode) ? "user mode" : "system mode") << std::endl;
-  }
-  return ret;
-}
-
-void Memory::PrepareRespond(void) {
-  MessagePart message_part;
-  MessageType type = message_.GetType();
-
-  if (MemoryExceptionPush == status_) {
-    // Notify CPU that Memory will not work any more
-    message_part.respond_part_.OpResult = MemoryError;
-    info_memory << "[status]" << StatusToString() << " ---> MemoryExceptionPull" << std::endl;
-    status_ = MemoryExceptionPull;
-  } else if (MemoryExceptionPull == status_ && IsEnd_()) {
-    info_memory << "Got end, exit for exception!" << std::endl;
-    // Change status to ending
-    info_memory << "[status]" << StatusToString() << " ---> MemoryEnding" << std::endl;
-    status_ = MemoryEnding;
-    return;
-  } else if (MemoryRunning == status_) {
-    if (Request == type) {
-      if (message_.GetRequestCommandType() == ReadMemory) {
-        // prepare a respond message for read request
-        message_part.respond_part_.OpResult =
-            Read(message_.GetReadRequest(),
-                 message_.GetRequestCommandMode(),
-                 message_part.respond_part_.data_);
-      } else if (message_.GetRequestCommandType() == WriteMemory) {
-        // prepare a respond message for write request
-        message_part.respond_part_.OpResult =
-            Write(message_.GetWriteRequestAddress(),
-                  message_.GetWriteRequestData(),
-                  message_.GetRequestCommandMode());
-      } else {
-        info_memory << "Got end, normal exit!" << std::endl;
-        // Change status to ending
-        info_memory << "[status]" << StatusToString() << " ---> MemoryEnding" << std::endl;
-        status_ = MemoryEnding;
-        return;
-      }
-
-      // Change state to MemoryExceptionPull
-      if (!IsSuccess(message_part.respond_part_.OpResult)) {
-        info_memory << "[status]" << StatusToString() << " ---> MemoryExceptionPull" << std::endl;
-        status_ = MemoryExceptionPull;
-      }
-    } else {
-      error_memory << "Memory should not receive a respond message!" << std::endl;
-      message_part.respond_part_.OpResult = WrongMessageType;
-    }
-  }
-
-  message_.SetMessage(Respond, message_part);
-}
-
-std::string Memory::StatusToString(void) {
+std::string Memory::StatusToString(void) const {
   std::string res;
   if (MemoryIniting == status_) {
     res = "MemoryIniting";

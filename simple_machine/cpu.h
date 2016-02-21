@@ -25,18 +25,18 @@ public:
   CPU(const int& read_pipe,
       const int& write_pipe,
       const int& timer_trigger)
-    : register_pc_(UserSpaceBegin),
+    : mode_(UserMode),
+      register_pc_(UserSpaceBegin),
       register_sp_(UserStack),
       register_ir_(0),
       register_ac_(0),
       register_x_(0),
       register_y_(0),
-      message_(read_pipe, write_pipe),
       instruction_counter_(0),
-      mode_(UserMode),
-      status_(CPURunning),
       uncalled_timer_(0),
       timer_trigger_(timer_trigger),
+      message_(read_pipe, write_pipe),
+      status_(CPURunning),
       dist_(1, 100) {
     random_engine_.seed(std::random_device()());
   }
@@ -49,6 +49,9 @@ public:
   }
 
 private:
+  /*** Hardware stuffs ***/
+  CPUMode mode_;
+
   // registers
   int32_t register_pc_;
   int32_t register_sp_;
@@ -57,16 +60,19 @@ private:
   int32_t register_x_;
   int32_t register_y_;
 
-  // random number
-  std::mt19937 random_engine_;
-  std::uniform_int_distribution<std::mt19937::result_type> dist_;
+  // timer
+  uint32_t instruction_counter_;
+  uint32_t uncalled_timer_;
+  int32_t timer_trigger_;
 
-  // message related
+  // message for request and response
   Message message_;
 
-  // Internal communication function
-  void PushRequest(const MessagePart& message_part);
-  RetValue PullRespond(int32_t& data);
+  Status status_;
+
+  // random number for Get()
+  std::mt19937 random_engine_;
+  std::uniform_int_distribution<std::mt19937::result_type> dist_;
 
   /*** instructions ***/
   RetValue LoadValue(void); // 1
@@ -103,21 +109,19 @@ private:
   RetValue IRet(void); // 30
   void End(void); // 50
 
-  // Internal helper
+  // internal helpers
   RetValue LoadIdx(const int32_t& register_);
   void MovePC(const int32_t& offset = 1) {
     register_pc_ += offset;
   }
 
-  // debug helper
-  std::string RegisterToString(void);
-  std::string CPUInfoToString(void);
+  // pipe operation wrappers
+  void PushRequest(const MessagePart& message_part);
+  RetValue PullRespond(int32_t& data);
 
-  uint32_t instruction_counter_;
-  CPUMode mode_;
-  Status status_;
-  uint32_t uncalled_timer_;
-  int32_t timer_trigger_;
+  // debug helpers
+  std::string RegisterToString(void) const;
+  std::string CPUInfoToString(void) const;
 };
 
 } // namespace vm

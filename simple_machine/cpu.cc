@@ -4,20 +4,6 @@
 
 namespace vm {
 
-void CPU::PushRequest(const MessagePart& message_part) {
-  message_.SetMessage(Request, message_part);
-  message_.PushMessage();
-}
-
-RetValue CPU::PullRespond(int32_t& data) {
-  message_.PullMessage();
-  RetValue ret = message_.GetRespondData(data);
-  if (MemoryViolation == ret || MemoryError == ret) {
-    End();
-  }
-  return ret;
-}
-
 void CPU::FetchNextInstruction(void) {
   PushRequest({ReadMemory, mode_, register_pc_});
   PullRespond(register_ir_);
@@ -132,13 +118,37 @@ void CPU::ExecuteInstruction(void) {
   info_cpu << CPUInfoToString() << std::endl;
 }
 
+void CPU::CheckTimer(void) {
+  if (IsEnd()) { return; }
+
+  // delay triggered timer
+  if (mode_ == UserMode && uncalled_timer_ > 0) {
+    info_cpu << "[Timer] Trigger delayed Timer @ instruction " << instruction_counter_ << std::endl;
+    Int(TimerSpaceBegin, register_pc_, TimerMode);
+    --uncalled_timer_;
+  }
+
+  // timer
+  if (!(instruction_counter_ % timer_trigger_)) {
+    if (mode_ == UserMode) {
+      info_cpu << "[Timer] Trigger Timer @ instruction " << instruction_counter_ << std::endl;
+      Int(TimerSpaceBegin, register_pc_, TimerMode);
+    } else {
+      // add delay counter
+      info_cpu << "[Timer] Delay Timer @ instruction " << instruction_counter_ << std::endl;
+      uncalled_timer_++;
+    }
+  }
+}
+
 // 1
 RetValue CPU::LoadValue(void) {
   RetValue ret(Success);
 
   PushRequest({ReadMemory, mode_, ++register_pc_});
   Check(ret, PullRespond(register_ac_))
-  register_pc_++;
+
+  MovePC();
 
 done:
   return ret;
@@ -189,6 +199,30 @@ done:
   return ret;
 }
 
+// 4
+void CPU::LoadIdxX(void) {
+  LoadIdx(register_x_);
+  MovePC();
+}
+
+// 5
+void CPU::LoadIdxY(void) {
+  LoadIdx(register_y_);
+  MovePC();
+}
+
+// 6
+RetValue CPU::LoadSpX(void) {
+  RetValue ret(Success);
+
+  PushRequest({ReadMemory, mode_, (register_sp_ + register_x_)});
+  Check(ret, PullRespond(register_ac_))
+  MovePC();
+
+  done:
+  return ret;
+}
+
 // 7
 RetValue CPU::Store(void) {
   RetValue ret(Success);
@@ -220,10 +254,54 @@ void CPU::Get(void) {
   MovePC();
 }
 
+// 9
+RetValue CPU::Put(void) {
+  RetValue ret(Success);
+  int32_t port;
+
+  PushRequest({ReadMemory, mode_, ++register_pc_});
+  Check(ret, PullRespond(port))
+
+  if (port == 1) {
+    std::cerr << register_ac_;
+  } else if (port == 2) {
+    std::cerr << static_cast<char>(register_ac_);
+  }
+
+  MovePC();
+
+  done:
+  return ret;
+}
+
+// 10
+void CPU::AddX(void) {
+  register_ac_ += register_x_;
+  MovePC();
+}
+
+// 11
+void CPU::AddY(void) {
+  register_ac_ += register_y_;
+  MovePC();
+}
+
+// 12
+void CPU::SubX(void) {
+  register_ac_ -= register_x_;
+  MovePC();
+}
+
+// 13
+void CPU::SubY(void) {
+  register_ac_ -= register_y_;
+  MovePC();
+}
+
 // 14
 void CPU::CopyToX(void) {
   register_x_ = register_ac_;
-  register_pc_++;
+  MovePC();
 }
 
 // 15
@@ -235,7 +313,7 @@ void CPU::CopyFromX(void) {
 // 16
 void CPU::CopyToY(void) {
   register_y_ = register_ac_;
-  register_pc_++;
+  MovePC();
 }
 
 // 17
@@ -244,44 +322,7 @@ void CPU::CopyFromY(void) {
   MovePC();
 }
 
-// 4
-void CPU::LoadIdxX(void) {
-  LoadIdx(register_x_);
-  register_pc_++;
-}
-
-// 5
-void CPU::LoadIdxY(void) {
-  LoadIdx(register_y_);
-  register_pc_++;
-}
-
-// 6
-RetValue CPU::LoadSpX(void) {
-  RetValue ret(Success);
-
-  PushRequest({ReadMemory, mode_, (register_sp_ + register_x_)});
-  Check(ret, PullRespond(register_ac_))
-  MovePC();
-
-done:
-  return ret;
-}
-
-RetValue CPU::LoadIdx(const int32_t& register_) {
-  RetValue ret(Success);
-  int32_t operand;
-
-  PushRequest({ReadMemory, mode_, ++register_pc_});
-  Check(ret, PullRespond(operand))
-  PushRequest({ReadMemory, mode_, (operand + register_)});
-  Check(ret, PullRespond(register_ac_))
-
-done:
-  return ret;
-}
-
-// 18 Untest
+// 18
 void CPU::CopyToSp(void) {
   register_sp_ = register_ac_;
   MovePC();
@@ -293,6 +334,17 @@ void CPU::CopyFromSp(void) {
   MovePC();
 }
 
+// 20
+RetValue CPU::Jump(void) {
+  RetValue ret(Success);
+
+  PushRequest({ReadMemory, mode_, ++register_pc_});
+  Check(ret, PullRespond(register_pc_))
+
+  done:
+  return ret;
+}
+
 // 21
 RetValue CPU::JumpIfEqual(void) {
   RetValue ret(Success);
@@ -301,7 +353,7 @@ RetValue CPU::JumpIfEqual(void) {
     PushRequest({ReadMemory, mode_, ++register_pc_});
     Check(ret, PullRespond(register_pc_))
   } else {
-    register_pc_ += 2;
+    MovePC(2);
   }
 
 done:
@@ -323,70 +375,6 @@ done:
   return ret;
 }
 
-RetValue CPU::Put(void) {
-  RetValue ret(Success);
-  int32_t port;
-
-  PushRequest({ReadMemory, mode_, ++register_pc_});
-  Check(ret, PullRespond(port))
-
-  if (port == 1) {
-    std::cerr << register_ac_;
-  } else if (port == 2) {
-    std::cerr << static_cast<char>(register_ac_);
-  }
-  register_pc_++;
-
-done:
-  return ret;
-}
-
-void CPU::IncX(void) {
-  ++register_x_;
-  register_pc_++;
-}
-
-// 20
-RetValue CPU::Jump(void) {
-  RetValue ret(Success);
-
-  PushRequest({ReadMemory, mode_, ++register_pc_});
-  Check(ret, PullRespond(register_pc_))
-
-done:
-  return ret;
-}
-
-// 10
-void CPU::AddX(void) {
-  register_ac_ += register_x_;
-  MovePC();
-}
-
-// 11
-void CPU::AddY(void) {
-  register_ac_ += register_y_;
-  register_pc_++;
-}
-
-// 12
-void CPU::SubX(void) {
-  register_ac_ -= register_x_;
-  MovePC();
-}
-
-// 13
-void CPU::SubY(void) {
-  register_ac_ -= register_y_;
-  MovePC();
-}
-
-// 50
-void CPU::End(void) {
-  status_ = CPUEnding;
-  PushRequest({EndProcess, mode_, 0});
-}
-
 // 23
 RetValue CPU::CallAddress(void) {
   RetValue ret(Success);
@@ -404,7 +392,7 @@ RetValue CPU::CallAddress(void) {
 
   Check(ret, Jump())
 
-done:
+  done:
   return ret;
 }
 
@@ -417,8 +405,14 @@ RetValue CPU::Ret(void) {
   // jump to the address
   Check(ret, PullRespond(register_pc_))
 
-done:
+  done:
   return ret;
+}
+
+// 25
+void CPU::IncX(void) {
+  ++register_x_;
+  MovePC();
 }
 
 // 26
@@ -518,7 +512,40 @@ done:
   return ret;
 }
 
-std::string CPU::RegisterToString(void) {
+// 50
+void CPU::End(void) {
+  status_ = CPUEnding;
+  PushRequest({EndProcess, mode_, 0});
+}
+
+RetValue CPU::LoadIdx(const int32_t& register_) {
+  RetValue ret(Success);
+  int32_t operand;
+
+  PushRequest({ReadMemory, mode_, ++register_pc_});
+  Check(ret, PullRespond(operand))
+  PushRequest({ReadMemory, mode_, (operand + register_)});
+  Check(ret, PullRespond(register_ac_))
+
+  done:
+  return ret;
+}
+
+void CPU::PushRequest(const MessagePart& message_part) {
+  message_.SetMessage(Request, message_part);
+  message_.PushMessage();
+}
+
+RetValue CPU::PullRespond(int32_t& data) {
+  message_.PullMessage();
+  RetValue ret = message_.GetRespondData(data);
+  if (MemoryViolation == ret || MemoryError == ret) {
+    End();
+  }
+  return ret;
+}
+
+std::string CPU::RegisterToString(void) const {
   std::string res;
   res += " pc: ";
   res += std::to_string(register_pc_);
@@ -535,7 +562,7 @@ std::string CPU::RegisterToString(void) {
   return res;
 }
 
-std::string CPU::CPUInfoToString(void) {
+std::string CPU::CPUInfoToString(void) const {
   std::string res;
   res += "(";
   res += std::to_string(instruction_counter_);
@@ -550,29 +577,6 @@ std::string CPU::CPUInfoToString(void) {
   res += "]";
   res += RegisterToString();
   return res;
-}
-
-void CPU::CheckTimer(void) {
-  if (IsEnd()) { return; }
-
-  // delay triggered timer
-  if (mode_ == UserMode && uncalled_timer_ > 0) {
-    info_cpu << "[Timer] Trigger delayed Timer @ instruction " << instruction_counter_ << std::endl;
-    Int(TimerSpaceBegin, register_pc_, TimerMode);
-    --uncalled_timer_;
-  }
-
-  // timer
-  if (!(instruction_counter_ % timer_trigger_)) {
-    if (mode_ == UserMode) {
-      info_cpu << "[Timer] Trigger Timer @ instruction " << instruction_counter_ << std::endl;
-      Int(TimerSpaceBegin, register_pc_, TimerMode);
-    } else {
-      // add delay counter
-      info_cpu << "[Timer] Delay Timer @ instruction " << instruction_counter_ << std::endl;
-      uncalled_timer_++;
-    }
-  }
 }
 
 } // namespace vm

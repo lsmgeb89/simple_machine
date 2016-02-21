@@ -3,10 +3,6 @@
 #include <sys/wait.h>
 #include "memory.h"
 
-/*
-The parent gets the child's pid returned to him, but the child gets 0 returned to him.
-*/
-
 int main(int argc, char* argv[]) {
   pid_t pid, res;
   int status;
@@ -35,9 +31,6 @@ int main(int argc, char* argv[]) {
 
   switch (pid = fork()) {
     case -1:
-      /* Here pid is -1, the fork failed */
-      /* Some possible reasons are that you're */
-      /* out of process slots or virtual memory */
       perror("LOG_ERROR_MODULE_SYSTEM[fork]");
       exit(-1);
 

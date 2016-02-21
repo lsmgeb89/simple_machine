@@ -29,4 +29,16 @@ void Message::SetupWriteMessage(const int32_t& address,
   message_part.request_part_.write_command_.data_ = data;
 }
 
+RetValue Message::GetRespondData(int32_t& data) const {
+  if (GetType() != Respond) {
+    error_message << "Wrong type of respond message!" << std::endl;
+    return WrongMessageType;
+  }
+
+  if (IsSuccess(msg_.message_.respond_part_.OpResult)) {
+    data = msg_.message_.respond_part_.data_;
+  }
+  return msg_.message_.respond_part_.OpResult;
+}
+
 } // namespace vm
