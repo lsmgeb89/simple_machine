@@ -6,6 +6,8 @@
 \usepackage{enumitem}
 \usepackage{changepage}
 \usepackage[colorlinks]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{automata, positioning}
 
 \begin{document}
 
@@ -22,6 +24,8 @@ The purpose of project 1 is to learn about two major things. The first one is to
   \item Processor instruction behavior
   \item Role of registers
   \item Stack processing
+  \item Procedure calls
+  \item System calls
   \item Interrupt handling
   \item Memory protection
 \end{enumerate}
@@ -45,6 +49,22 @@ For class relationship, both class \textit{\color{blue} CPU} and class \textit{\
 How to correctly power off the machine? It involves the design of exit scheme. In the common case of CPU side, End instruction indicates a chance to exit. When encountering an End instruction, CPU sends a message which type is \textit{\color{blue} EndProcess} nofitying memory that it's time to exit. So there are only two states \textit{\color{blue} CPURunning} and \textit{\color{blue} CPUEnding} needed for CPU. In this case, it will set \textit{\color{blue} CPUEnding} and CPU stops looping the next instruction cycle and do system call \textit{\color{blue} waitpid} to wait the child process terminated. Once the child process terminates, the parent process itself exits. Thus the simple machine correctly exits.
 
 But in order to add proper error handling scheme to deal with different kinds errors like a valid program file or memory violation, I implement a state machine in class \textit{\color{blue} Memory}. To be specific, there are five states indicating by a enum called \textit{\color{blue} Status}. They are \textit{\color{blue} MemoryIniting}, \textit{\color{blue} MemoryRunning}, \textit{\color{blue} MemoryExceptionPush}, \textit{\color{blue} MemoryExceptionPull} and \textit{\color{blue} MemoryEnding}. The picture below describes the flow of state transition of memory.
+
+\begin{tikzpicture}[shorten >=1pt,node distance=4cm,on grid,auto,initial text=An instance created]
+  \node[state,initial] (q_0) {Initing};
+  \node[state] (q_1) [right=of q_0] {Running};
+  \node[state] (q_2) [below left=of q_0] {ExceptionPush};
+  \node[state] (q_4) [below right=of q_2] {ExceptionPull};
+  \node[state,accepting](q_3) [below =of q_1] {Ending};
+
+  \path[->] (q_0) edge node {Init() Success} (q_1)
+                  edge node [swap] {Init() Fail} (q_2)
+            (q_1) edge node {Receive \textit{\color{blue} EndProcess}} (q_3)
+                  edge node [swap] {Memory Violation} (q_4)
+                  edge [loop above] node {Read() or Write()} ()
+            (q_2) edge node [swap] {Notify CPU to end} (q_4)
+            (q_4) edge node [swap] {Receive \textit{\color{blue} EndProcess}} (q_3);
+\end{tikzpicture}
 
 Let me explain that: In the constructor of class \textit{\color{blue} Memory}, I initalize the state to \textit{\color{blue} MemoryIniting}. After calling the \textit{\color{blue} void Memory::Init(void)} function, if there is no error occurred, I change the state to \textit{\color{blue} MemoryRunning}. If there is an error occurred in the process of parsing a program file, I change the state to \textit{\color{blue} MemoryExceptionPush}, meaning that memory will not work and in the next time memory repares a respond for CPU request, it sends an error respond message which is indicated by \textit{\color{blue} MemoryError} and then changes state to \textit{\color{blue} MemoryExceptionPull} to wait the end message of CPU. I also handle memory violation by using this state. I just send a respond message which operation result is \textit{\color{blue} MemoryViolation} and then also changes state to \textit{\color{blue} MemoryExceptionPull}. So all errors will lead to this state. After pulling an \textit{\color{blue} EndProcess} message sent by CPU, memory just changes state to \textit{\color{blue} MemoryEnding} and terminates the child process.
 
