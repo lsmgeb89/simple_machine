@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.3)
+
 project(simple_machine)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+file(GLOB SIMPLE_MACHINE_SOURCES "*.h" "*.cc")
 
-set(SOURCE_FILES memory.cc main.cc cpu.cc message.cc)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-add_definitions(-DNDEBUG)
-
-add_executable(simple_machine ${SOURCE_FILES})
+add_executable(simple_machine ${SIMPLE_MACHINE_SOURCES})

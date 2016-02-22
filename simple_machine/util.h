@@ -49,5 +49,6 @@ static NullStream null_stream;
 #define error_message std::cerr << LOG_ERROR << MODULE_MESSAGE
 
 #define LOG_ERROR_MODULE_SYSTEM LOG_ERROR MODULE_SYSTEM
+#define LOG_ERROR_MODULE_MESSAGE LOG_ERROR MODULE_MESSAGE
 
 #endif // SIMPLE_MACHINE_MCHN_UTIL_H_

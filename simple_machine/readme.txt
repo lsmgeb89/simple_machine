@@ -13,8 +13,9 @@ util.h: logging utility
 instruction_table.h: instructions' name table for logging
 
 How to compile:
-1. create a build folder outside source folder
-2. cmake 'path_to_source'
+1. create a build folder (eg: build_minsizerel) outside the folder containing source files
+2. cd build_minsizerel
+2. cmake 'path_to_source_root' -DCMAKE_BUILD_TYPE=MINSIZEREL
 3. make
 
 How to run:
