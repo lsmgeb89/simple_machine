@@ -14,9 +14,11 @@ int main(int argc, char* argv[]) {
   int32_t interrupt_timer(0);
 
   // parse commandline
-  if (argc == 3) {
+  if (argc == 3 &&
+      (access(argv[1], R_OK) != -1) &&
+      (std::stoi(argv[2]) > 0)) {
     file_path = argv[1];
-    interrupt_timer = atoi(argv[2]);
+    interrupt_timer = std::stoi(argv[2]);
   } else {
     error_system << "Wrong Parameter" << std::endl;
     exit(0);
