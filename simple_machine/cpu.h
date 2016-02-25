@@ -107,6 +107,8 @@ private:
                const int32_t& return_address,
                const CPUMode& cpu_mode); // 29
   RetValue IRet(void); // 30
+  RetValue Mod(void); // 31
+  RetValue Call(void); // 32
   void End(void); // 50
 
   // internal helpers

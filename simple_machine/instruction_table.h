@@ -37,7 +37,9 @@ std::vector<std::string> instruction_table = {
   "PUSH",
   "POP",
   "INT",
-  "IRET"
+  "IRET",
+  "MOD",
+  "CALL"
 };
 
 } // namespace vm

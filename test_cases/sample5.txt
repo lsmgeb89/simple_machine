@@ -1,96 +1,78 @@
-1     // Load 10 to AC
-10    // 10 as loop index and table index
-14    // Copy AC to X
-26    // DecX
-4     // Load table address(100) + X to AC
-100   // table start address
-9     // Put 2 (output as char)
-2
-15    // Copy X to AC
-22    // If AC is not zero, jump to loop start
-3
-29
-
-// Test Instruction 11, 12, 13
-1     // Load 9 to AC
-9
-14    // Copy AC to X
-1     // Load 4 to AC
-4
-16    // Copy AC to Y
-3     // Load ! to AC
-150
-11    // AC += Y
-9
-2
-13    // AC -= Y
-9
-2
-10    // AC += X
-9
-2
-12    // AC -= X
-9
-2
-29
-
-// Test Instruction 8
-8     // Get random number
-9
-1
-29
-8     // Get random number
-9
-1
-29
-8     // Get random number
-9
-1
-29
-
-// Test Instruction 18
-1     // Load 950 to AC
-950
-18    // Copy AC to SP
-27    // Push
-19    // Copy SP to AC
-9
-1
-29
-
+23    // Call Info printer
+25
+23    // Call password generator
+50
 50    // End
 
-.100
-117   // Data: u
-105   // Data: i
-108   // Data: l
-46    // Data: .
-103   // Data: g
-110   // Data: n
-105   // Data: i
-109   // Data: m
-105   // Data: i
-115   // Data: s
+.25   // Info printer
+1     // Load 0
+0
+14    // CopyToX
+.28   // Loop start address
+4     // Load from table
+400
+21    // Jump out of loop
+37
+9     // Put 2 (output as char)
+2
+25    // IncX
+20    // Jump to loop start address
+28
+.37
+1     // Print an newline
+10
+9
+2
+24    // Return
 
-.150
+.50   // Password Generator to generate 8 characters
+23    // Call function to generate one upper case letter
+100
+23    // Call function to generate one lower case letter
+150
+23    // Call function to generate one number
 200
+23    // Call function to generate one special character
+250
 
-.200
-33    // Data: !
+      // Randomly generate remaining 4 characters
+1     // Load 4 as a loop counter to AC
+4
+14    // Loop begin: Copy AC to X
 
-.1000
-30    // Ret
+8     // Get a random number to AC
+31    // AC = AC mod 4
+4
+16    // Copy AC into Y as an offset of function table
+5     // Load function address from function table (.350)
+350
+32    // Call a sub-function to generate
 
-.1500
+26    // Decrease loop counter
+15    // Copy to AC
+22    // If AC is not zero jump to loop beginning address
+60
+1     // Print an newline
+10
+9
+2
+24    // Return
+
+.100  // Generate one upper case letter
 27    // Push
 15    // CopyFromX
 27    // Push
 17    // CopyFromY
 27    // Push
 
-1     // Print newline
-10
-9
+8     // Get a random number to AC
+31    // AC = AC mod 26
+26
+14    // Copy AC into X as an offset of alphabet table
+1
+65    // Load 'A' into AC
+10    // Add offset to AC to get real letter
+9     // Print that letter
 2
 
 28    // Pop
@@ -98,4 +80,168 @@
 28    // Pop
 14    // CopyToX
 28    // Pop
-30    // IRet
+24    // Return
+
+.150  // Generate one lower case letter
+27    // Push
+15    // CopyFromX
+27    // Push
+17    // CopyFromY
+27    // Push
+
+8     // Get a random number to AC
+31    // AC = AC mod 26
+26
+14    // Copy AC into X as an offset of alphabet table
+1
+97    // Load 'a' into AC
+10    // Add offset to AC to get real letter
+9     // Print that letter
+2
+
+28    // Pop
+16    // CopyToY
+28    // Pop
+14    // CopyToX
+28    // Pop
+24    // Return
+
+.200  // Generate one number
+27    // Push
+15    // CopyFromX
+27    // Push
+17    // CopyFromY
+27    // Push
+
+8     // Get a random number to AC
+31    // AC = AC mod 10
+10
+14    // Copy AC into X as offset of number table
+1
+48    // Load '0' into AC
+10    // Add offset to AC to get real number
+9     // Print that number
+2
+
+28    // Pop
+16    // CopyToY
+28    // Pop
+14    // CopyToX
+28    // Pop
+24    // Return
+
+.250  // Generate one Special character
+27    // Push
+15    // CopyFromX
+27    // Push
+17    // CopyFromY
+27    // Push
+
+8     // Get a random number to AC
+31    // AC = AC mod 23
+23
+14    // Copy AC into X as offset of special character table
+4     // Load from special character table (.300)
+300
+9     // Print that letter
+2
+
+28    // Pop
+16    // CopyToY
+28    // Pop
+14    // CopyToX
+28    // Pop
+24    // Return
+
+.300  // Special character table (23)
+33    // !
+64    // @
+35    // #
+36    // $
+94    // ^
+40    // (
+41    // )
+45    // -
+43    // +
+95    // _
+61    // =
+124   // |
+96    // `
+126   // ~
+91    // [
+93    // ]
+123   // {
+125   // }
+58    // :
+44    // ,
+46    // .
+63    // ?
+34    // "
+
+.350  // Function address table
+100   // Generate one upper case letter
+150   // Generate one lower case letter
+200   // Generate one number
+250   // Generate one special character
+
+.400
+71    // G
+101   // e
+110   // n
+101   // e
+114   // r
+97    // a
+116   // t
+101   // e
+32    // ' '
+97    // a
+32    // ' '
+115   // s
+104   // h
+111   // o
+114   // r
+116   // t
+101   // e
+115   // s
+116   // t
+32    // ' '
+40    // (
+56    // 8
+41    // )
+32    // ' '
+112   // p
+97    // a
+115   // s
+115   // s
+119   // w
+111   // o
+114   // r
+100   // d
+32    // ' '
+102   // f
+111   // o
+114   // r
+32    // ' '
+78    // N
+101   // e
+116   // t
+73    // I
+68    // D
+32    // ' '
+40    // (
+83    // S
+105   // i
+109   // m
+105   // i
+110   // n
+103   // g
+32    // ' '
+76    // L
+105   // i
+117   // u
+41    // )
+58    // :
+0
+
+.1000
+30    // Interrupt handler - just return

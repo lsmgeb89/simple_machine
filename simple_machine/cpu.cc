@@ -105,6 +105,12 @@ void CPU::ExecuteInstruction(void) {
     case 30:
       ret = IRet();
       break;
+    case 31:
+      ret = Mod();
+      break;
+    case 32:
+      ret = Call();
+      break;
     case 50:
       End();
       break;
@@ -507,6 +513,43 @@ RetValue CPU::IRet(void) {
 
   // back to user mode
   mode_ = UserMode;
+
+done:
+  return ret;
+}
+
+// 31
+RetValue CPU::Mod(void) {
+  RetValue ret(Success);
+  int32_t operand;
+
+  PushRequest({ReadMemory, mode_, ++register_pc_});
+  Check(ret, PullRespond(operand))
+
+  register_ac_ %= operand;
+
+  MovePC();
+
+done:
+  return ret;
+}
+
+// 32
+RetValue CPU::Call(void) {
+  RetValue ret(Success);
+  MessagePart message_part;
+
+  // Push return address onto stack
+  Message::SetupWriteMessage(--register_sp_,
+                             register_pc_ + 1,
+                             mode_,
+                             message_part);
+  PushRequest(message_part);
+
+  int32_t value;
+  Check(ret, PullRespond(value))
+
+  register_pc_ = register_ac_;
 
 done:
   return ret;
