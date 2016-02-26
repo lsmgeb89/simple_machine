@@ -16,14 +16,18 @@
    |
    CMakeLists.txt: CMake file for building project
 
+--test_cases
+   |
+   sample1.txt sample2.txt sample3.txt sample4.txt: teacher's test cases
+   |
+   sample5.txt: shortest NetID password generator
+
 summary.pdf: summary document
 
-sample5.txt: shortest NetID password generator
-
-How to compile (using Linux shell command):
+How to compile (only support on csgrads1.utdallas.edu by using Linux shell command):
 1. create a build folder outside the src folder
    (eg: mkdir build_minsizerel)
-2. change diectory to build folder
+2. change directory to the build folder
    (eg: cd build_minsizerel)
 2. cmake 'path_to_source_root' -DCMAKE_BUILD_TYPE=MINSIZEREL
    (eg: cmake ../src -DCMAKE_BUILD_TYPE=MINSIZEREL)
@@ -31,4 +35,4 @@ How to compile (using Linux shell command):
 
 How to run:
 simple_machine 'path_to_program_file' 'timer_counter'
-(eg : simple_machine ~/sample5.txt 30)
+(eg: simple_machine ~/sample5.txt 30)

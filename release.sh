@@ -13,8 +13,10 @@ fi
 mkdir -p "$RELEASE_FOLDER"/src
 # copy source files
 cp simple_machine/*.cc simple_machine/*.h simple_machine/CMakeLists.txt "$RELEASE_FOLDER"/src
-# copy sample5.txt
-cp test_cases/sample5.txt simple_machine/readme.txt "$RELEASE_FOLDER"
+# copy readme.txt
+cp simple_machine/readme.txt "$RELEASE_FOLDER"
+# copy testcases
+cp -a test_cases/ "$RELEASE_FOLDER"/
 # compile summary.tex
 pushd summary
 pdflatex -output-directory="$RELEASE_FOLDER" summary.tex
